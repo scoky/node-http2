@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var http2 = require('..');
+var http = require("http");
 
 var options = process.env.HTTP2_PLAIN ? {
   plain: true
@@ -20,15 +21,11 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 // Creating the server
 var server = http2.createServer(options, function(request, response) {
   var poptions = require('url').parse(request.url);
-  poptions.protocol = process.env.UP_PROTOCOL+':'; // Awazza always uses http
-  poptions.hostname = process.env.UP_SERVER; // Location of upstream server, either awazza testing proxy or webserver
+  poptions.host = process.env.UP_SERVER; // Location of upstream server, either awazza testing proxy or webserver
   poptions.port = process.env.UP_PORT;
-  var prequest = http2.request(poptions);
-  prequest.end();
-
-  // Receiving the response
-  prequest.on('response', function(presponse) {  
-    presponse.pipe(response);
+  // HOST header should be taken care of by the final client
+  http.get(poptions, function (presponse) {
+	presponse.pipe(response);
   });
 });
 
