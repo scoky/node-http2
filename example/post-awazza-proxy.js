@@ -17,11 +17,12 @@ var server = http.createServer(function(request, response) {
 
 //----------TEMPORARY TESTING--------------
 //  poptions.host = "106.186.112.116";
-  poptions.port = 8080;
+//  poptions.port = 8080;
 //----------TEMPORARY TESTING--------------
 
-  // Send request via HTTP2
+  // Always send request via HTTP2 over TLS
   poptions.protocol = "https:"
+  poptions.port = 443
   var prequest = http2.request(poptions);
   prequest.end();
 
