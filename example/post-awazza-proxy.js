@@ -33,4 +33,4 @@ var server = http.createServer(function(request, response) {
   });
 });
 
-server.listen(process.env.HTTP2_PORT || 3456);
+server.listen(process.env.HTTP2_PORT || 2345);
