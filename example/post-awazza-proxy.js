@@ -24,13 +24,32 @@ var server = http.createServer(function(request, response) {
   poptions.protocol = "https:"
   poptions.port = 443
   var prequest = http2.request(poptions);
-  prequest.end();
+
+  function onErr(err) {
+        console.log('PRequest error: '+err);
+        response.writeHead('404');
+        response.end();
+  };
+  prequest.on('error', onErr);
+
 
   // Receiving the response from upstream server
   prequest.on('response', function(presponse) {
-	// Pipe response to Awazza  
-	presponse.pipe(response);
+        presponse.on('PResponse error', function(err) {
+          console.log('Error: '+err);
+          response.writeHead('404');
+          response.end();
+        });
+	// Pipe response to Awazza
+        presponse.pipe(response);
   });
+
+  prequest.end();
 });
 
+/*server.on('error', function(err) {
+  console.log('Server error: '+err);
+});*/
+
 server.listen(process.env.HTTP2_PORT || 2345);
+
