@@ -17,10 +17,11 @@ options.log = require('../test/util').createLogger('server');
 var server = http2.createServer(options, function(request, response) {
   console.log("Received request: "+request);
   var poptions = require('url').parse(request.url);
+  poptions.headers = request.headers;
+  poptions.headers.Host = poptions.hostname;
   // Replace upstream server from URL with Awazza endpoint
   poptions.host = process.env.UP_SERVER || 'localhost'; 
   poptions.port = process.env.UP_PORT || 8899;
-  poptions.headers = request.headers;
   // Send HTTP1.1 request to Awazza
   http.get(poptions, function (presponse) {
 	// Pipe the response from Awazza to the client

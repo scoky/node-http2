@@ -7,9 +7,17 @@ log: require('../test/util').createLogger('client')
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 // Sending the request
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
+var proxy = process.argv.pop();
 var options = require('url').parse(process.argv.pop());
+
 options.plain = Boolean(process.env.HTTP2_PLAIN);
+options.headers = {
+  Host : options.hostname
+}
+options.host = proxy;
+
 var request = http2.request(options);
+
 request.end();
 // Receiving the response
 request.on('response', function(response) {
