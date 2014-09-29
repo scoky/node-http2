@@ -15,6 +15,7 @@ options.log = require('../test/util').createLogger('server');
 
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
+  console.log("Received request: "+request);
   var poptions = require('url').parse(request.url);
   // Replace upstream server from URL with Awazza endpoint
   poptions.host = process.env.UP_SERVER || 'localhost'; 
