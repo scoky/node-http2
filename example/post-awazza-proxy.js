@@ -23,6 +23,7 @@ var server = http.createServer(function(request, response) {
   // Always send request via HTTP2 over TLS
   poptions.protocol = "https:"
   poptions.port = 443
+  poptions.headers = request.headers
   var prequest = http2.request(poptions);
 
   function onErr(err) {
@@ -35,8 +36,8 @@ var server = http.createServer(function(request, response) {
 
   // Receiving the response from upstream server
   prequest.on('response', function(presponse) {
-        presponse.on('PResponse error', function(err) {
-          console.log('Error: '+err);
+        presponse.on('error', function(err) {
+          console.log('PResponse Error: '+err);
           response.writeHead('404');
           response.end();
         });
