@@ -16,7 +16,7 @@ options.log = require('../test/util').createLogger('server');
 
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
-  console.log("Received request: "+request);
+  console.log("Received request: "+request.url+" "+JSON.stringify(request.headers));
 
   var poptions = require('url').parse(request.url);
   poptions.headers = http2.convertHeadersFromH2(request.headers)

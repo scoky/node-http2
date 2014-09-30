@@ -12,7 +12,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Creating an HTTP1.1 server to listen for incoming requests from Awazza
 var server = http.createServer(function(request, response) {
-  console.log("Received request: "+request);
+  console.log("Received request: "+request.url+" "+JSON.stringify(request.headers));
 
   // Determine upstream server from requested URL
   var poptions = require('url').parse(request.url);
@@ -21,6 +21,7 @@ var server = http.createServer(function(request, response) {
   poptions.protocol = "https:"
   poptions.port = 443
   poptions.headers = http2.convertHeadersToH2(request.headers)
+  poptions.host = poptions.hostname = request.headers['host']
 
   var prequest = http2.request(poptions);
   function onErr(err) {
