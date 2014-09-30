@@ -23,6 +23,7 @@ var server = http2.createServer(options, function(request, response) {
   // Replace upstream server from URL with Awazza endpoint
   poptions.host = poptions.hostname = process.env.UP_SERVER || 'localhost'; 
   poptions.port = process.env.UP_PORT || 8899;
+  poptions.protocol = 'http:'
  
   // Send HTTP1.1 request to Awazza
   http.get(poptions, function (presponse) {
