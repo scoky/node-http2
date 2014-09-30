@@ -3,6 +3,7 @@ var path = require('path');
 var http2 = require('..');
 var http = require("http");
 
+//var path_ext = '/h2_awazza'
 var options = process.env.HTTP2_PLAIN ? {
   plain: true
 } : {
@@ -20,6 +21,9 @@ var server = http2.createServer(options, function(request, response) {
   var poptions = require('url').parse(request.url);
   poptions.headers = http2.convertHeadersFromH2(request.headers)
 
+//  poptions.pathname = poptions.pathname.lastIndexOf(path_ext, 0) === 0 ? poptions.pathname.substring(path_ext.length) : poptions.pathname
+//  poptions.headers[':path'] = poptions.headers[':path'].lastIndexOf(path_ext, 0) === 0 ? poptions.headers[':path'].substring(path_ext.length) : poptions.headers[':path']
+
   // Replace upstream server from URL with Awazza endpoint
   poptions.host = poptions.hostname = process.env.UP_SERVER || 'localhost'; 
   poptions.port = process.env.UP_PORT || 8899;
@@ -34,4 +38,4 @@ var server = http2.createServer(options, function(request, response) {
   });
 });
 
-server.listen(process.env.HTTP2_PORT || 3456);
+server.listen(process.env.HTTP2_PORT || 4567);
