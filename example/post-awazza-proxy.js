@@ -31,7 +31,6 @@ var server = http.createServer(function(request, response) {
   };
   prequest.on('error', onErr);
 
-
   // Receiving the response from upstream server
   prequest.on('response', function(presponse) {
         presponse.on('error', function(err) {

@@ -35,7 +35,7 @@ if (argv.p) {
 
 // Sending the request
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
-console.log('Sending '+JSON.stringify(options, null, '\t'))
+// console.log('Sending '+JSON.stringify(options, null, '\t'))
 var request = http2.request(options)
 request.end()
 
@@ -50,7 +50,7 @@ request.on('response', function(response) {
   response.on('end', finish)
 });
 
-// Receiving push streams - IGNORE FOR NOW
+// Receiving push streams - IGNORE PUSH FOR NOW
 /*request.on('push', function(pushRequest) {
   var filename = path.join(__dirname, '/push-' + push_count);
   push_count += 1;
