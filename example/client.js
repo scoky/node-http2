@@ -1,3 +1,5 @@
+#!/user/bin/env node
+
 var fs = require('fs')
 var path = require('path')
 var http2 = require('..')
