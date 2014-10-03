@@ -33,6 +33,7 @@ var server = http2.createServer(options, function(request, response) {
  
   // Send HTTP1.1 request to Awazza
   http.get(poptions, function (presponse) {
+    console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
     // Convert and write the headers
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
     // Pipe the response from Awazza to the client

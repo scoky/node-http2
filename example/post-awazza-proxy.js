@@ -25,6 +25,7 @@ var server = http.createServer(function(request, response) {
   poptions.headers = http2.convertHeadersToH2(request.headers)
   poptions.host = poptions.hostname = request.headers['host']
 
+//  console.log("Sending request: "+JSON.stringify(poptions));
   var prequest = http2.request(poptions);
   function onErr(err) {
         console.log('PRequest error: '+err);
@@ -40,6 +41,7 @@ var server = http.createServer(function(request, response) {
           response.writeHead('404');
           response.end();
         });
+	console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
         response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
 	// Pipe response to Awazza
         presponse.pipe(response);
