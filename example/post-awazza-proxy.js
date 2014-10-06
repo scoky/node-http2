@@ -43,8 +43,12 @@ var server = http.createServer(function(request, response) {
         });
 	console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
         response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
-	// Pipe response to Awazza
-        presponse.pipe(response);
+	if (presponse.statusCode >= 400) {
+		response.end();
+	} else {
+		// Pipe response to Awazza
+        	presponse.pipe(response);
+	}
   });
 
   prequest.end();

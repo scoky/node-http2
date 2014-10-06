@@ -36,8 +36,12 @@ var server = http2.createServer(options, function(request, response) {
     console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
     // Convert and write the headers
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
-    // Pipe the response from Awazza to the client
-    presponse.pipe(response)
+    if (presponse.statusCode >= 400) {
+      response.end();
+    } else {
+      // Pipe the response from Awazza to the client
+      presponse.pipe(response);
+    }
   });
 });
 
