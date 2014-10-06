@@ -34,6 +34,13 @@ var server = http.createServer(function(request, response) {
   };
   prequest.on('error', onErr);
 
+  prequest.setTimeout(5, function () {
+    console.log('PRequest timed out');
+    prequest.abort()
+    response.writeHead(504)
+    response.end()
+  })
+
   // Receiving the response from upstream server
   prequest.on('response', function(presponse) {
         presponse.on('error', function(err) {
