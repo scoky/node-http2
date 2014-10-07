@@ -23,7 +23,7 @@ var server = http.createServer(function(request, response) {
   poptions.protocol = "https:"
   poptions.port = 443
   poptions.headers = http2.convertHeadersToH2(request.headers)
-  poptions.host = poptions.hostname = request.headers['host']
+  poptions.host = poptions.hostname = request.headers[':authority']
 
 //  console.log("Sending request: "+JSON.stringify(poptions));
   var prequest = http2.request(poptions);
@@ -34,7 +34,7 @@ var server = http.createServer(function(request, response) {
   };
   prequest.on('error', onErr);
 
-  prequest.setTimeout(5, function () {
+  prequest.setTimeout(5000, function () {
     console.log('PRequest timed out');
     prequest.abort()
     response.writeHead(504)
