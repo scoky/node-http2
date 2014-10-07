@@ -27,14 +27,15 @@ var options = require('url').parse(argv._[0])
 options.protocol = 'https:'
 options.plain = false
 options.headers = {
-  ':authority' : options.hostname
+  ':authority' : options.hostname,
+  'user-agent' : 'curl/7.38.0', // Let's make them think we are curl for now
+  'accept' : '*/*'
 }
 // Proxy present
 if (argv.p) {
   options.hostname = options.host = argv.p.split(':')[0]
   options.port = argv.p.split(':')[1]
 }
-options = {"protocol":"https:","slashes":true,"auth":null,"host":"mplane.pdi.tid.es","port":4567,"hostname":"mplane.pdi.tid.es","hash":null,"search":null,"query":null,"pathname":"/","path":"/","href":"https://nghttp2.org:4567/","headers":{"user-agent":"Mozilla/5.0 Chrome/10.0.613.0 Safari/534.15 Zombie.js/2.0.4","referer":"","accept":"text/html",":authority":"nghttp2.org"},"plain":false}
 
 // Sending the request
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
@@ -69,6 +70,7 @@ var finished = 0
 function finish() {
   finished += 1
   if (finished === (1 + push_count)) {
+    console.log('')
     process.exit()
   }
 }

@@ -1,6 +1,6 @@
 var CS = require('coffee-script')
 CS.register()
-var Browser = require("/home/b.kyle/github/zombie/src/zombie")
+var Browser = require("../../zombie/src/zombie")
 
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
