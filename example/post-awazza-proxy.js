@@ -1,29 +1,32 @@
 #!/usr/bin/env node
 
-var fs = require('fs');
-var path = require('path');
-var http2 = require('..');
-var http = require("http");
+var fs = require('fs')
+var path = require('path')
+var http2 = require('..')
+var http = require('http')
+var url = require('url')
 
 // Passing bunyan logger to http2
 http2.globalAgent = new http2.Agent({
   log: require('../test/util').createLogger('client')
-});
+})
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
 // Creating an HTTP1.1 server to listen for incoming requests from Awazza
 var server = http.createServer(function(request, response) {
-  console.log("Received request: "+request.url+" "+JSON.stringify(request.headers));
+  console.log("Received request: "+request.url+" "+JSON.stringify(request.headers))
 
   // Determine upstream server from requested URL
-  var poptions = require('url').parse(request.url);
+  var poptions = url.parse(request.url);
 
   // Always send request via HTTP2 over TLS
   poptions.protocol = "https:"
   poptions.port = 443
+  poptions.href = url.format(poptions)
   poptions.headers = http2.convertHeadersToH2(request.headers)
-  poptions.host = poptions.hostname = request.headers[':authority']
+  poptions.host = poptions.hostname = poptions.headers[':authority']
+  poptions.plain = false
 
 //  console.log("Sending request: "+JSON.stringify(poptions));
   var prequest = http2.request(poptions);
@@ -50,12 +53,8 @@ var server = http.createServer(function(request, response) {
         });
 	console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
         response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
-	if (presponse.statusCode >= 400) {
-		response.end();
-	} else {
-		// Pipe response to Awazza
-        	presponse.pipe(response);
-	}
+	// Pipe response to Awazza
+       	presponse.pipe(response);
   });
 
   prequest.end();
