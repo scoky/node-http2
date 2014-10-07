@@ -27,6 +27,7 @@ if (tout != -1) {
 
 browser.visit(argv._[0], function () {
   browser.assert.success()
+  browser.resources.dump()
   process.exit(0)
 });
 
