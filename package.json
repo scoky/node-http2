@@ -11,7 +11,9 @@
     "chai": "*",
     "mocha": "*",
     "docco": "*",
-    "bunyan": "*"
+    "bunyan": "*",
+    "stream-length": "*",
+    "minimist": "*"
   },
   "scripts": {
     "test": "istanbul test _mocha -- --reporter spec --slow 200",
@@ -19,11 +21,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/molnarg/node-http2.git"
+    "url": "https://github.com/scoky/node-http2.git"
   },
-  "homepage": "https://github.com/molnarg/node-http2",
+  "homepage": "https://github.com/scoky/node-http2",
   "bugs": {
-    "url": "https://github.com/molnarg/node-http2/issues"
+    "url": "https://github.com/scoky/node-http2/issues"
   },
   "keywords": [
     "http",

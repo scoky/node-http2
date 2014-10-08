@@ -110,6 +110,9 @@ Used libraries:
 * [istanbul](https://github.com/gotwarlost/istanbul) for code coverage analysis
 * [docco](http://jashkenas.github.io/docco/) for developer documentation
 * [bunyan](https://github.com/trentm/node-bunyan) for logging
+* [length-stream](https://github.com/jeffbski/length-stream) for determining response size
+* [minimist](https://github.com/substack/minimist) for args parsing
+* [zombie](https://github.com/scoky/zombie) for headless browsing
 
 For pretty printing logs, you will also need a global install of bunyan (`npm install -g bunyan`).
 
