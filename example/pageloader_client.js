@@ -1,3 +1,8 @@
+var http2 = require('..');
+http2.globalAgent = new http2.Agent({
+  log: require('../test/util').createLogger('client')
+});
+
 var CS = require('coffee-script')
 CS.register()
 var Browser = require("../../zombie/src/zombie")
@@ -24,10 +29,12 @@ if (argv.p) {
 if (tout != -1) {
   setTimeout(function() { process.exit(1) }, tout*1000)
 }
-
+var time = process.hrtime()
 browser.visit(argv._[0], function () {
   browser.assert.success()
   browser.resources.dump()
+  time = process.hrtime(time)
+  console.log('LOAD_TIME='+(time[0] + time[1]/1000000000).toFixed(3)+'s')
   process.exit(0)
 });
 
