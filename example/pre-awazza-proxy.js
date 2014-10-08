@@ -18,7 +18,7 @@ options.log = require('../test/util').createLogger('server');
 
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
-  console.log("Received request: "+request.url+" "+JSON.stringify(request.headers));
+  console.log(Date.now()+" Received request: "+request.url+" "+JSON.stringify(request.headers));
 
   var poptions = require('url').parse(request.url);
   poptions.headers = http2.convertHeadersFromH2(request.headers)
@@ -33,7 +33,7 @@ var server = http2.createServer(options, function(request, response) {
  
   // Send HTTP1.1 request to Awazza
   http.get(poptions, function (presponse) {
-    console.log("Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    console.log(Date.now()+" Received response: "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
     // Convert and write the headers
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
     // Pipe the response from Awazza to the client
