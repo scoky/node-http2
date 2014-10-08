@@ -38,16 +38,6 @@ require('http2').createServer(options, function(request, response) {
 }).listen(8080);
 ```
 
-### Dependencies ###
-
-* [bunyan](https://github.com/trentm/node-bunyan)
-
-    Needed for logging.
-
-* [stream-length](https://github.com/jeffbski/length-stream)
-
-    Used to measure the length of the content returned to the client.
-
 
 ### Using as a client ###
 
