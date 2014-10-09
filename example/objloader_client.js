@@ -34,12 +34,7 @@ function lengthListener(length) {
 
 // Receiving push streams
 request.on('push', function(pushRequest) {
-  var filename = path.join(__dirname, '/push-' + push_count);
-  push_count += 1;
-  console.error('Receiving pushed resource: ' + pushRequest.url + ' -> ' + filename);
-  pushRequest.on('response', function(pushResponse) {
-    pushResponse.pipe(fs.createWriteStream(filename)).on('finish', finish);
-  });
+  console.error('Receiving pushed resource: ' + pushRequest.url + ' ignoring.');
 });
 
 // Quitting after both the response and the associated pushed resources have arrived
