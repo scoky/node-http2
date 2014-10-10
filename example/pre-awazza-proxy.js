@@ -5,6 +5,7 @@ var path = require('path')
 var http2 = require('..')
 var http = require("http")
 var crypto = require('crypto');
+var url = require('url')
 
 var options = process.env.HTTP2_PLAIN ? {
   plain: true
@@ -34,9 +35,11 @@ var server = http2.createServer(options, function(request, response) {
 
   console.log(Date()+" Received request: "+request.url+" "+JSON.stringify(request.headers))
 
-  var poptions = require('url').parse(request.url)
+  var poptions = url.parse(request.url)
   // Convert the http/2 headers received from the client into http/1.1 headers for Awazza
   poptions.headers = http2.convertHeadersFromH2(request.headers)
+  poptions.host = poptions.hostname = poptions.headers.host
+  poptions.href = poptions.url = url.format(poptions)
 
   // Replace upstream server from URL with Awazza endpoint, default localhost:8899
   poptions.host = poptions.hostname = process.env.UP_SERVER || 'localhost'

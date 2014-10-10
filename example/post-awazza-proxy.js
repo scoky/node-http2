@@ -32,7 +32,7 @@ var server = http.createServer(function(request, response) {
   
   // Update the href to reflect the content server
   poptions.servername = poptions.host = poptions.hostname = poptions.headers[':authority']
-  poptions.href = url.format(poptions)
+  poptions.href = poptions.url = url.format(poptions)
 
   // Disable plain text mode
   poptions.plain = false
