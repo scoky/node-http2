@@ -13,7 +13,8 @@
     "docco": "*",
     "bunyan": "*",
     "length-stream": "*",
-    "minimist": "*"
+    "minimist": "*",
+    "coffee-script": "*"
   },
   "scripts": {
     "test": "istanbul test _mocha -- --reporter spec --slow 200",
