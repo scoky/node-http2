@@ -80,14 +80,15 @@ var server = http.createServer(function(request, response) {
     response.writeHead(502)
     response.end()
   })
-  prequest.setTimeout(5, function () {
+  // Timeout only applied to HTTP session, not TCP connect
+  /*prequest.setTimeout(5000, function () {
     console.log('PRequest timed out')
     // Request timedout to content server
     prequest.abort()
     // Tell Awazza about the timeout
     response.writeHead(504)
     response.end()
-  })
+  })*/
 })
 
 /*server.on('error', function(err) { // This will never catch an error?
