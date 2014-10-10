@@ -15,11 +15,12 @@ http2.globalAgent = new http2.Agent({
 
 // Do not validate server certificate
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+var request_count = 0
 
 // Creating an HTTP1.1 server to listen for incoming requests from Awazza
 var server = http.createServer(function(request, response) {
-
-  console.log(Date()+" Received request: "+request.url+" "+JSON.stringify(request.headers))
+  var req_no = request_count++
+  console.log(Date()+" Received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   // Determine upstream server from requested URL
   var poptions = url.parse(request.url)
@@ -43,7 +44,7 @@ var server = http.createServer(function(request, response) {
   // Receiving the response from content server
   prequest.on('response', function(presponse) {  
 
-    console.log(Date()+" Received response: "+request.url+" "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    console.log(Date()+" Received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
     response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
     // Pipe response to Awazza
