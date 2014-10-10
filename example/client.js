@@ -31,6 +31,8 @@ options.headers = {
   'user-agent' : 'curl/7.38.0', // Let's make them think we are curl for now
   'accept' : '*/*'
 }
+options.servername = options.hostname
+
 // Proxy present
 if (argv.p) {
   options.hostname = options.host = argv.p.split(':')[0]

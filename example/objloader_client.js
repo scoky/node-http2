@@ -15,6 +15,7 @@ var return_code = 0
 var size = 0
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
 var options = require('url').parse(process.argv.pop());
+options.servername = options.hostname
 options.plain = Boolean(process.env.HTTP2_PLAIN);
 var request = http2.request(options);
 request.end();

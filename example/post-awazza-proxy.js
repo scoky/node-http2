@@ -31,47 +31,63 @@ var server = http.createServer(function(request, response) {
   poptions.headers = http2.convertHeadersToH2(request.headers)
   
   // Update the href to reflect the content server
-  poptions.host = poptions.hostname = poptions.headers[':authority']
+  poptions.servername = poptions.host = poptions.hostname = poptions.headers[':authority']
   poptions.href = url.format(poptions)
 
   // Disable plain text mode
   poptions.plain = false
 
   // Send the request to the content server
-  // console.log("Sending request: "+JSON.stringify(poptions))
+  //console.log("Sending request: "+JSON.stringify(poptions))
   var prequest = http2.request(poptions)
-  prequest.on('error', function (err) {
-    console.log('PRequest error: '+err)
-    // Something went wrong, send Awazza a 502 error
-    response.writeHead(502)
-    response.end()
-  })
-  prequest.setTimeout(5000, function () {
-    console.log('PRequest timed out')
-    // Request timedout
-    prequest.abort()
-    // Tell Awazza about the timeout
-    response.writeHead(504)
-    response.end()
-  })
-
   // Receiving the response from content server
-  prequest.on('response', function(presponse) {
-    presponse.on('error', function(err) {
-    console.log('PResponse Error: '+err)
-      // Something went wrong, send Awazza a 502 error
-      response.writeHead('502')
-      response.end()
-    })
+  prequest.on('response', function(presponse) {  
 
     console.log(Date()+" Received response: "+request.url+" "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
     response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
     // Pipe response to Awazza
     presponse.pipe(response)
+
+    presponse.on('error', function(err) {
+      console.log('PResponse Error: '+err)
+      // Something went wrong, send Awazza a 502 error
+      response.writeHead(502)
+      response.end()
+    })
   })
 
+  if (poptions.headers['content-length'] > 0) {
+    request.pipe(prequest)
+  }
   prequest.end()
+
+  // ERROR HANDLING
+  request.on('error', function (err) {
+    // Error on request from client
+    // Nothing to be done except log the event
+    console.log('Request error: '+err)
+  })
+  response.on('error', function (err) {
+    // Error sending response to client
+    // Nothing to be done except log the event
+    console.log('Response error: '+err)
+  })
+  prequest.on('error', function (err) {
+    console.log('PRequest error: '+err)
+    // Something went wrong during request to content server
+    // Send Awazza a 502 error
+    response.writeHead(502)
+    response.end()
+  })
+  prequest.setTimeout(5, function () {
+    console.log('PRequest timed out')
+    // Request timedout to content server
+    prequest.abort()
+    // Tell Awazza about the timeout
+    response.writeHead(504)
+    response.end()
+  })
 })
 
 /*server.on('error', function(err) { // This will never catch an error?

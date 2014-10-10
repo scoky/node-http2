@@ -4,6 +4,7 @@ var fs = require('fs')
 var path = require('path')
 var http2 = require('..')
 var http = require("http")
+var crypto = require('crypto');
 
 var options = process.env.HTTP2_PLAIN ? {
   plain: true
@@ -15,6 +16,18 @@ var options = process.env.HTTP2_PLAIN ? {
 
 // Passing bunyan logger to http2 server
 options.log = require('../test/util').createLogger('server')
+
+// To get servername from TLS handshake
+// Could use to parallelize post- TLS handshake
+// Unfortunately, the 'servername' is the proxy, not the content server
+/*options.SNICallback = function (servername) {
+  console.log('Incoming TLS session for '+servername)
+  var details = {
+    key: options.key,
+    cert: options.cert
+  }
+  return crypto.createCredentials(details).context
+}*/
 
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
@@ -32,7 +45,7 @@ var server = http2.createServer(options, function(request, response) {
   poptions.protocol = 'http:'
  
   // Send http/1.1 request to Awazza
-  http.get(poptions, function (presponse) {
+  var prequest = http.request(poptions, function (presponse) {
 
     console.log(Date()+" Received response: "+request.url+' '+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
@@ -40,12 +53,36 @@ var server = http2.createServer(options, function(request, response) {
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
     // Pipe the response from Awazza to the client
     presponse.pipe(response)
+
+    presponse.on('error', function (err) {
+      // Return an error to the client
+      console.log('PResponse Error: '+err)
+      response.writeHeader(502)
+      response.end()
+    })
   })
 
+  if (poptions.headers['content-length'] > 0) {
+    request.pipe(prequest)
+  }
+  prequest.end()
+
+  // ERROR HANDLING
+  request.on('error', function (err) {
+    // Error on request from client
+    // Nothing to be done except log the event
+    console.log('Request Error: '+err)
+  })
   response.on('error', function (err) {
     // Error sending response to client
     // Nothing to be done except log the event
     console.log('Response Error: '+err)
+  })
+  prequest.on('error', function (err) {
+    // Return an error to the client
+    console.log('PRequest Error: '+err)
+    response.writeHead(502)
+    response.end()
   })
 })
 
