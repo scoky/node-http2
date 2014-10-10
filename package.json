@@ -12,7 +12,7 @@
     "mocha": "*",
     "docco": "*",
     "bunyan": "*",
-    "stream-length": "*",
+    "length-stream": "*",
     "minimist": "*"
   },
   "scripts": {
