@@ -44,7 +44,7 @@ var server = http2.createServer(options, function(request, response) {
   poptions.href = poptions.url = url.format(poptions)
 
   // Replace upstream server from URL with Awazza endpoint, default localhost:8899
-  poptions.host = poptions.hostname = process.env.UP_SERVER || 'localhost'
+  poptions.host = poptions.hostname = process.env.UP_HOST || 'localhost'
   poptions.port = process.env.UP_PORT || 8899
   // Awazza doesn't speak https
   poptions.protocol = 'http:'
@@ -92,4 +92,4 @@ var server = http2.createServer(options, function(request, response) {
 })
 
 // Listen on port 4567 by default
-server.listen(process.env.HTTP2_PORT || 4567)
+server.listen(process.env.PRE_PORT || 4567)

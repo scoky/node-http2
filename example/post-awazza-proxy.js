@@ -97,5 +97,5 @@ var server = http.createServer(function(request, response) {
 })*/
 
 // Listen on port 2345 by default
-server.listen(process.env.HTTP2_PORT || 2345)
+server.listen(process.env.POST_PORT || 2345)
 
