@@ -13,9 +13,41 @@ var server = http.createServer(function(request, response) {
 
   console.log(Date()+" Received process restart request")
 
+  var on_error = function(error) {
+    console.error(Date()+' Error running child process: '+error)
+  }
+  var on_stderr = function(data) {
+    console.log(''+data)
+  }
+  var on_stdout = function(data) {
+    console.error(''+data)
+  }
+
+
+  var create_pre = function() {
+      pre_child = spawn('node', ['pre-awazza-proxy.js'])
+      pre_child.on('error', on_error)
+      pre_child.stdout.on('data', on_stdout)
+      pre_child.stderr.on('data', on_stderr)
+      pre_child.on('exit', function(code, signal) {
+        create_pre()
+      })
+      console.log(Date()+" Started pre process ("+pre_child.pid+")")
+  }
+  var create_post = function() {
+      post_child = spawn('node', ['post-awazza-proxy.js'])
+      post_child.on('error', on_error)
+      post_child.stdout.on('data', on_stdout)
+      post_child.stderr.on('data', on_stderr)
+      post_child.on('exit', function(code, signal) {
+        create_post()
+      })
+      console.log(Date()+" Started post process ("+post_child.pid+")")
+  }
+
   // Kill the currently running process
   if (pre_child) {
-    console.log(Date()+" Killing former pre process ("+post_child.pid+")")
+    console.log(Date()+" Killing former pre process ("+pre_child.pid+")")
     pre_child.kill()
   } else {
     create_pre()
@@ -33,38 +65,11 @@ var server = http.createServer(function(request, response) {
   child.on('error', on_error)
   child.on('exit', function(code, signal) {
     // Awazza finished restarting, return response to client
+    console.log(Date()+' Awazza restart complete')
     response.writeHead(200)
     response.end()
   })
 
-
-  var create_pre = function() {
-      pre_child = spawn('node', ['pre-awazza-proxy.js'])
-      pre_child.on('error', on_error)
-      pre_child.on('exit', function(code, signal) {
-        create_pre()
-      })
-      console.log(Date()+" Started pre process ("+pre_child.pid+")")
-  }
-  var create_post = function() {
-      post_child = spawn('node', ['post-awazza-proxy.js'])
-      post_child.on('error', on_error)
-      post_child.on('exit', function(code, signal) {
-        create_post()
-      })
-      console.log(Date()+" Started post process ("+post_child.pid+")")
-  }
-  var on_error = function(error) {
-    console.error(Date()+' Error running child process: '+error)
-  }
-
-
-  child.stdout.on('data', function(data) {
-    console.log(''+data)
-  })
-  child.stderr.on('data', function(data) {
-    console.error(''+data)
-  })
 
   // ERROR HANDLING
   request.on('error', function (err) {

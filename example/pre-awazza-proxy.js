@@ -35,7 +35,7 @@ var request_count = 0
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
   var req_no = request_count++
-  console.log(Date()+" Received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
+  console.log(Date()+" Pre received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   var poptions = url.parse(request.url)
   // Convert the http/2 headers received from the client into http/1.1 headers for Awazza
@@ -52,7 +52,7 @@ var server = http2.createServer(options, function(request, response) {
   // Send http/1.1 request to Awazza
   var prequest = http.request(poptions, function (presponse) {
 
-    console.log(Date()+" Received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    console.log(Date()+" Pre received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
     // Convert and write the headers
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
