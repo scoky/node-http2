@@ -6,7 +6,7 @@ var http = require('http')
 var url = require('url')
 var spawn = require('child_process').spawn
 
-var child = null
+var pre_child = post_child = null
 
 // Creating an HTTP1.1 server to listen for incoming requests from client
 var server = http.createServer(function(request, response) {
@@ -14,38 +14,68 @@ var server = http.createServer(function(request, response) {
   console.log(Date()+" Received process restart request")
 
   // Kill the currently running process
-  if (child) {
-    console.log(Date()+" Killing former process")
-    child.stdout.removeAllListeners('data')
-    child.stderr.removeAllListeners('data')
-    child.kill()
+  if (pre_child) {
+    console.log(Date()+" Killing former pre process ("+post_child.pid+")")
+    pre_child.kill()
+  } else {
+    create_pre()
+  }
+  // Kill the currently running process
+  if (post_child) {
+    console.log(Date()+" Killing former post process ("+post_child.pid+")")
+    post_child.kill()
+  } else {
+    create_post()
   }
 
-  child = spawn('node', ['post-awazza-proxy.js'])
+  // Restart Awazza
+  child = spawn('sudo', ['service', 'awanode', 'restart'])
+  child.on('error', on_error)
+  child.on('exit', function(code, signal) {
+    // Awazza finished restarting, return response to client
+    response.writeHead(200)
+    response.end()
+  })
+
+
+  var create_pre = function() {
+      pre_child = spawn('node', ['pre-awazza-proxy.js'])
+      pre_child.on('error', on_error)
+      pre_child.on('exit', function(code, signal) {
+        create_pre()
+      })
+      console.log(Date()+" Started pre process ("+pre_child.pid+")")
+  }
+  var create_post = function() {
+      post_child = spawn('node', ['post-awazza-proxy.js'])
+      post_child.on('error', on_error)
+      post_child.on('exit', function(code, signal) {
+        create_post()
+      })
+      console.log(Date()+" Started post process ("+post_child.pid+")")
+  }
+  var on_error = function(error) {
+    console.error(Date()+' Error running child process: '+error)
+  }
+
+
   child.stdout.on('data', function(data) {
     console.log(''+data)
   })
   child.stderr.on('data', function(data) {
     console.error(''+data)
   })
-  child.on('error', function(error) {
-    console.error('Error running child process: '+error)
-    child = null
-  })
-
-  response.writeHead(200)
-  response.end()
 
   // ERROR HANDLING
   request.on('error', function (err) {
     // Error on request from client
     // Nothing to be done except log the event
-    console.log('Request error: '+err)
+    console.log(Date()+' Request error: '+err)
   })
   response.on('error', function (err) {
     // Error sending response to client
     // Nothing to be done except log the event
-    console.log('Response error: '+err)
+    console.log(Date()+' Response error: '+err)
   })
 })
 
@@ -54,5 +84,5 @@ var server = http.createServer(function(request, response) {
 })*/
 
 // Listen on port 2345 by default
-server.listen(process.env.HTTP2_PORT || 5678)
+server.listen(process.env.LIST_PORT || 5678)
 
