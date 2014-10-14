@@ -48,7 +48,7 @@ var server = http.createServer(function(request, response) {
     var rheaders = http2.convertHeadersFromH2(presponse.headers)
     // Response contains a location. Convert the location to http: for Awazza
     if (rheaders.location) {
-      var location = url.parse(rheaders.location)
+      var location = url.parse(url.resolve(request.url, rheaders.location))
       location.protocol = 'http:'
       rheaders.location = url.format(location)
     }
