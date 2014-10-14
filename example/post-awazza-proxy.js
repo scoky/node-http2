@@ -45,8 +45,15 @@ var server = http.createServer(function(request, response) {
   prequest.on('response', function(presponse) {  
 
     console.log(Date()+" Post received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    var rheaders = http2.convertHeadersFromH2(presponse.headers)
+    // Response contains a location. Convert the location to http: for Awazza
+    if (rheaders.location) {
+      var location = url.parse(rheaders.location)
+      location.protocol = 'http:'
+      rheaders.location = url.format(location)
+    }
 
-    response.writeHead(presponse.statusCode, '', http2.convertHeadersFromH2(presponse.headers))
+    response.writeHead(presponse.statusCode, '', rheaders)
     // Pipe response to Awazza
     presponse.pipe(response)
 
