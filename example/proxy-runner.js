@@ -17,12 +17,11 @@ var server = http.createServer(function(request, response) {
     console.error(Date()+' Error running child process: '+error)
   }
   var on_stderr = function(data) {
-    console.log(''+data)
+    process.stdout.write(''+data)
   }
   var on_stdout = function(data) {
-    console.error(''+data)
+    process.stderr.write(''+data)
   }
-
 
   var create_pre = function() {
       pre_child = spawn('node', ['pre-awazza-proxy.js'])
@@ -62,6 +61,8 @@ var server = http.createServer(function(request, response) {
 
   // Restart Awazza
   child = spawn('sudo', ['service', 'awanode', 'restart'])
+  child.stdout.on('data', on_stdout)
+  child.stderr.on('data', on_stderr)
   child.on('error', on_error)
   child.on('exit', function(code, signal) {
     // Awazza finished restarting, return response to client
