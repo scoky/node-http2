@@ -35,7 +35,7 @@ var request_count = 0
 // Creating HTTP2 server to listen for incoming requests from client
 var server = http2.createServer(options, function(request, response) {
   var req_no = request_count++
-  console.log(Date()+" Pre received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
+  console.log(Date().toISOString()+" Pre received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   var poptions = url.parse(request.url)
   // Convert the http/2 headers received from the client into http/1.1 headers for Awazza
@@ -52,7 +52,7 @@ var server = http2.createServer(options, function(request, response) {
   // Send http/1.1 request to Awazza
   var prequest = http.request(poptions, function (presponse) {
 
-    console.log(Date()+" Pre received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    console.log(Date().toISOString()+" Pre received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
     // Convert and write the headers
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
@@ -61,7 +61,7 @@ var server = http2.createServer(options, function(request, response) {
 
     presponse.on('error', function (err) {
       // Return an error to the client
-      console.log('PResponse Error: '+err)
+      console.log(Date().toISOString()+' PResponse Error: '+err)
       response.writeHeader(502)
       response.end()
     })
@@ -76,16 +76,16 @@ var server = http2.createServer(options, function(request, response) {
   request.on('error', function (err) {
     // Error on request from client
     // Nothing to be done except log the event
-    console.log('Request Error: '+err)
+    console.log(Date().toISOString()+' Request Error: '+err)
   })
   response.on('error', function (err) {
     // Error sending response to client
     // Nothing to be done except log the event
-    console.log('Response Error: '+err)
+    console.log(Date().toISOString()+' Response Error: '+err)
   })
   prequest.on('error', function (err) {
     // Return an error to the client
-    console.log('PRequest Error: '+err)
+    console.log(Date().toISOString()+' PRequest Error: '+err)
     response.writeHead(502)
     response.end()
   })

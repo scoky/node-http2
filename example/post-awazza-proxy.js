@@ -20,7 +20,7 @@ var request_count = 0
 // Creating an HTTP1.1 server to listen for incoming requests from Awazza
 var server = http.createServer(function(request, response) {
   var req_no = request_count++
-  console.log(Date()+" Post received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
+  console.log(Date().toISOString()+" Post received request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   // Determine upstream server from requested URL
   var poptions = url.parse(request.url)
@@ -44,7 +44,7 @@ var server = http.createServer(function(request, response) {
   // Receiving the response from content server
   prequest.on('response', function(presponse) {  
 
-    console.log(Date()+" Post received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
+    console.log(Date().toISOString()+" Post received response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
     var rheaders = http2.convertHeadersFromH2(presponse.headers)
     // Response contains a location. Convert the location to http: for Awazza
     if (rheaders.location) {
@@ -58,7 +58,7 @@ var server = http.createServer(function(request, response) {
     presponse.pipe(response)
 
     presponse.on('error', function(err) {
-      console.log('PResponse Error: '+err)
+      console.log(Date().toISOString()+' PResponse Error: '+err)
       // Something went wrong, send Awazza a 502 error
       response.writeHead(502)
       response.end()
@@ -74,15 +74,15 @@ var server = http.createServer(function(request, response) {
   request.on('error', function (err) {
     // Error on request from client
     // Nothing to be done except log the event
-    console.log('Request error: '+err)
+    console.log(Date().toISOString()+' Request error: '+err)
   })
   response.on('error', function (err) {
     // Error sending response to client
     // Nothing to be done except log the event
-    console.log('Response error: '+err)
+    console.log(Date().toISOString()+' Response error: '+err)
   })
   prequest.on('error', function (err) {
-    console.log('PRequest error: '+err)
+    console.log(Date().toISOString()+' PRequest error: '+err)
     // Something went wrong during request to content server
     // Send Awazza a 502 error
     response.writeHead(502)
