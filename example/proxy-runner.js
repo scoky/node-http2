@@ -11,7 +11,7 @@ var pre_child = post_child = null
 // Creating an HTTP1.1 server to listen for incoming requests from client
 var server = http.createServer(function(request, response) {
 
-  console.log(Date().toISOString()+" Received process restart request")
+  console.log((new Date()).toISOString()+" Received process restart request")
 
   var on_error = function(error) {
     console.error(Date()+' Error running child process: '+error)
@@ -31,7 +31,7 @@ var server = http.createServer(function(request, response) {
       pre_child.on('exit', function(code, signal) {
         create_pre()
       })
-      console.log(Date().toISOString()+" Started pre process ("+pre_child.pid+")")
+      console.log((new Date()).toISOString()+" Started pre process ("+pre_child.pid+")")
   }
   var create_post = function() {
       post_child = spawn('node', ['post-awazza-proxy.js'])
@@ -41,19 +41,19 @@ var server = http.createServer(function(request, response) {
       post_child.on('exit', function(code, signal) {
         create_post()
       })
-      console.log(Date().toISOString()+" Started post process ("+post_child.pid+")")
+      console.log((new Date()).toISOString()+" Started post process ("+post_child.pid+")")
   }
 
   // Kill the currently running process
   if (pre_child) {
-    console.log(Date().toISOString()+" Killing former pre process ("+pre_child.pid+")")
+    console.log((new Date()).toISOString()+" Killing former pre process ("+pre_child.pid+")")
     pre_child.kill()
   } else {
     create_pre()
   }
   // Kill the currently running process
   if (post_child) {
-    console.log(Date().toISOString()+" Killing former post process ("+post_child.pid+")")
+    console.log((new Date()).toISOString()+" Killing former post process ("+post_child.pid+")")
     post_child.kill()
   } else {
     create_post()
@@ -66,7 +66,7 @@ var server = http.createServer(function(request, response) {
   child.on('error', on_error)
   child.on('exit', function(code, signal) {
     // Awazza finished restarting, return response to client
-    console.log(Date().toISOString()+' Awazza restart complete')
+    console.log((new Date()).toISOString()+' Awazza restart complete')
     response.writeHead(200)
     response.end()
   })
@@ -76,12 +76,12 @@ var server = http.createServer(function(request, response) {
   request.on('error', function (err) {
     // Error on request from client
     // Nothing to be done except log the event
-    console.log(Date().toISOString()+' Request error: '+err)
+    console.log((new Date()).toISOString()+' Request error: '+err)
   })
   response.on('error', function (err) {
     // Error sending response to client
     // Nothing to be done except log the event
-    console.log(Date().toISOString()+' Response error: '+err)
+    console.log((new Date()).toISOString()+' Response error: '+err)
   })
 })
 
