@@ -38,6 +38,9 @@ if (argv.p) {
   options.hostname = options.host = argv.p.split(':')[0]
   options.port = argv.p.split(':')[1]
 }
+if (!argv.t) {
+  argv.t = 1
+}
 
 // Sending the request
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
@@ -68,10 +71,11 @@ function run() {
   })*/
 }
 
+var time = process.hrtime()
 // Perform the first request
-for (var i = 0; i < argv.t; i++) {
-  run()
-}
+//for (var i = 0; i < argv.t; i++) {
+run()
+//}
 
 // Quitting after both the response and the associated pushed resources have arrived
 var finished = 0
@@ -79,8 +83,12 @@ function finish() {
   finished += 1
   if (finished >= argv.t) {
     console.log('')
+    if (argv.v) {
+      time = process.hrtime(time)
+      console.log('LOAD_TIME='+(time[0] + time[1]/1000000000).toFixed(3)+'s')
+    }
     process.exit()
-  } /*else {
-    run()
-  }*/
+  } else {
+    setTimeout(run, 1000)
+  }
 }
