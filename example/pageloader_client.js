@@ -18,7 +18,7 @@ if (argv.h || argv._.length < 1) {
 tout = argv._[1] || '-1'
 tout = parseInt(tout)
 
-browser = Browser.create()
+var browser = Browser.create()
 // Proxy present
 if (argv.p) {
   browser.setProxy(argv.p)
