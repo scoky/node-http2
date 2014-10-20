@@ -48,7 +48,7 @@ var server = http2.createServer(options, function(request, response) {
     send404()
   })
   function send404() {
-    console.log((new Date()).toISOString()+" Could not find: "+https_url)
+    console.log((new Date()).toISOString()+" Could not find: "+request.url)
     response.writeHead(404)
     response.end()
   }
