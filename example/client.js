@@ -55,7 +55,8 @@ function run() {
       console.log('CODE='+response.statusCode)
       console.log('HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
     }
-    //response.pipe(process.stdout)
+//    response.pipe(process.stdout)
+    response.pipe(fs.createWriteStream('temp'))
 
     response.on('end', finish)
   })

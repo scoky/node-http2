@@ -58,6 +58,7 @@ var server = http2.createServer(options, function(request, response) {
     response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
     // Pipe the response from Awazza to the client
     presponse.pipe(response)
+    response.end()
 
     presponse.on('error', function (err) {
       // Return an error to the client

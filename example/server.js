@@ -42,6 +42,7 @@ var server = http2.createServer(options, function(request, response) {
       if (url.parse(key).path === url_path && (data[key].responseCode >= 100 && data[key].responseCode < 600)) {
         response.writeHead(data[key].responseCode, http2.convertHeadersToH2(data[key].headers))
         fs.createReadStream(path.join(dir, data[key].ref+'.response')).pipe(response)
+	response.end()
         return
       }
     }
