@@ -14,10 +14,11 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 // Parse argv
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
-  console.log('USAGE: node client.js <url> [-p proxy:port] [-v] [-h] [-t times]')
+  console.log('USAGE: node client.js <url> [-p proxy:port] [-v] [-h] [-t times] [-o file]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
   console.log('-t number of times to perform the request')
   console.log('-v print status code and headers of response')
+  console.log('-o write output to file')
   console.log('-h print this help menu')
   process.exit()
 }
@@ -55,7 +56,11 @@ function run() {
       console.log('CODE='+response.statusCode)
       console.log('HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
     }
-    response.pipe(process.stdout)
+    if (argv.o) {
+      response.pipe(fs.createWriteStream(argv.o))
+    } else {
+      response.pipe(process.stdout)
+    }
 
     response.on('end', finish)
   })
