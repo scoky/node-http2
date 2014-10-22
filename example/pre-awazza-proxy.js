@@ -48,6 +48,9 @@ var server = http2.createServer(options, function(request, response) {
   poptions.port = process.env.UP_PORT || 8899
   // Awazza doesn't speak https
   poptions.protocol = 'http:'
+
+  // Do not attempt to pool connections. This tells node to immediately send the request upstream
+  poptions.agent = false
  
   // Send http/1.1 request to Awazza
   var prequest = http.request(poptions, function (presponse) {
