@@ -27,13 +27,14 @@ var server = http.createServer(function(request, response) {
 
   // Always send request via HTTP2 over TLS
   poptions.protocol = "https:"
-  poptions.port = 443  
+  poptions.port = 6789
   // Convert the http/1.1 headers from Awazza into http/2 headers
   poptions.headers = http2.convertHeadersToH2(request.headers)
   
   // Update the href to reflect the content server
   poptions.servername = poptions.host = poptions.hostname = poptions.headers[':authority']
   poptions.href = poptions.url = url.format(poptions)
+  poptions.host = poptions.hostname = 'localhost'
 
   // Disable plain text mode
   poptions.plain = false

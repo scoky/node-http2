@@ -60,4 +60,4 @@ var server = http2.createServer(options, function(request, response) {
   }
 })
 
-server.listen(process.env.HTTP2_PORT || 8080);
+server.listen(process.env.HTTP2_PORT || 6789);
