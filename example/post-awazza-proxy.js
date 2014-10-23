@@ -67,8 +67,9 @@ var server = http.createServer(function(request, response) {
 
   if (poptions.headers['content-length'] > 0) {
     request.pipe(prequest)
+  } else {
+    prequest.end()
   }
-  prequest.end()
 
   // ERROR HANDLING
   request.on('error', function (err) {

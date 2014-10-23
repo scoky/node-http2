@@ -27,6 +27,8 @@ if (argv.p) {
 //Browser.dns.map('*', 'A', '195.235.93.225')
 //Browser.ports.map('195.235.93.225', 3456)
 if (tout != -1) {
+  browser.waitDuration = tout*1000-1000
+  // Give the browser a brief chance to clean up (hence -1000)
   setTimeout(function() { process.exit(1) }, tout*1000)
 }
 var time = process.hrtime()
