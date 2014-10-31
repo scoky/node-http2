@@ -15,11 +15,13 @@ var options = process.env.HTTP2_PLAIN ? {
 }
 
 // Passing bunyan logger to http2 server
-//options.log = require('../test/util').createLogger('server')
+options.log = require('../test/util').createLogger('server')
 // Passing bunyan logger to http2
-//http2.globalAgent = new http2.Agent({
-//  log: require('../test/util').createLogger('client')
-//})
+http2.globalAgent = new http2.Agent({
+  log: require('../test/util').createLogger('client')
+})
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
 var request_count = 0
 
@@ -29,20 +31,24 @@ var server = http2.createServer(options, function(request, response) {
   console.log((new Date()).toISOString()+" h2-to-h2 request: #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   var poptions = url.parse(request.url)
-  poptions.headers = request.headers
-  poptions.host = poptions.hostname = poptions.headers[':authority'] || poptions.headers['host']
-  poptions.href = poptions.url = url.format(poptions)
-
+  poptions.headers = http2.convertHeadersToH2(request.headers)
+  poptions.servername = poptions.host = poptions.hostname = 'localhost'//poptions.headers[':authority']
+  poptions.protocol = 'https:'
+  poptions.slashes = true
   // Server port number
   poptions.port = process.env.UP_PORT || 6789
+  poptions.href = poptions.url = url.format(poptions)
+  poptions.plain = false
  
   // Send the request to the content server
+  console.log((new Date()).toISOString()+" h2-to-h2 request: #"+req_no+"# "+JSON.stringify(poptions))
+
   var prequest = http2.request(poptions)
   // Receiving the response from content server
   prequest.on('response', function(presponse) {  
     console.log((new Date()).toISOString()+" h2-to-h2 response: #"+req_no+"# "+presponse.statusCode+" "+JSON.stringify(presponse.headers))
 
-    response.writeHead(presponse.statusCode, '', presponse.headers)
+    response.writeHead(presponse.statusCode, '', http2.convertHeadersToH2(presponse.headers))
     // Pipe response to Awazza
     presponse.pipe(response)
 

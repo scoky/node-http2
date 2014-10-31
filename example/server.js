@@ -23,9 +23,12 @@ if (argv.h || argv._.length != 1) {
 }
 var directory = argv._[0]
 
+var request_count = 0
+
 // Creating the server
 var server = http2.createServer(options, function(request, response) {
-  console.log((new Date()).toISOString()+" Request : "+request.url+" "+JSON.stringify(request.headers))
+  var req_no = request_count++
+  console.log((new Date()).toISOString()+" Request #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
 
   var hostname = request.headers[':authority'] || request.headers['host']
   var dir = path.join(directory, hostname)
@@ -40,6 +43,7 @@ var server = http2.createServer(options, function(request, response) {
     data = JSON.parse(data)
     for (key in data) {
       if (url.parse(key).path === url_path && (data[key].responseCode >= 100 && data[key].responseCode < 600)) {
+        console.log((new Date()).toISOString()+" Response #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
         response.writeHead(data[key].responseCode, http2.convertHeadersToH2(data[key].headers))
 	var rf = fs.createReadStream(path.join(dir, data[key].ref+'.response'))//.pipe(response)
 	rf.on('data', function(chunk) {
