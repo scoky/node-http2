@@ -63,10 +63,10 @@ function run(url) {
   }
   if (argv.v) {
     request.on('newConnection', function(endpoint) {
-      console.log('TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
+      console.log(toStringTime(process.hrtime(time))+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
     })
     request.on('protocolNegotiated', function(protocol) {
-      console.log('PROTOCOL='+protocol)
+      console.log(toStringTime(process.hrtime(time))+' PROTOCOL='+protocol)
     })
   }
   request.on('error', function(err) {
@@ -77,17 +77,18 @@ function run(url) {
   // Receiving the response
   request.on('response', function(response) {
     if (argv.v) {
-      console.log('RESPONSE='+options.href)
-      console.log('CODE='+response.statusCode)
-      console.log('HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
+      console.log(toStringTime(process.hrtime(time))+' RESPONSE='+options.href)
+      console.log(toStringTime(process.hrtime(time))+' CODE='+response.statusCode)
+      console.log(toStringTime(process.hrtime(time))+' HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
     }
     // Following redirect
     if (argv.f && (response.statusCode >= 300 && response.statusCode < 400) && response.headers['location']) {
       var nurl = require('url').resolve(options.href, response.headers['location'])
       if (argv.v) {
-	console.log('REDIRECT='+nurl)
+	console.log(toStringTime(process.hrtime(time))+' REDIRECT='+nurl)
       }
       run(nurl)
+
       // Read the data and ignore
       response.on('data', function(data) {})
       response.on('end', function() {})
@@ -104,7 +105,7 @@ function run(url) {
   // Receiving push streams
   request.on('push', function(pushRequest) {
     if (argv.v) {
-      console.log('PUSH='+pushRequest.url)
+      console.log(toStringTime(process.hrtime(time))+' PUSH='+pushRequest.url)
     }
     pushRequest.cancel()
   })
@@ -114,6 +115,9 @@ var time = process.hrtime()
 // Run the load for the first time
 run(argv._[0])
 
+function toStringTime(tval) {
+  return '['+(tval[0] + tval[1]/1000000000).toFixed(3)+'s]'
+}
 
 var finished = 0
 // Finished loading the object
@@ -123,8 +127,7 @@ function finish() {
   if (finished >= argv.t) {
     console.log('')
     if (argv.v) {
-      time = process.hrtime(time)
-      console.log('LOAD_TIME='+(time[0] + time[1]/1000000000).toFixed(3)+'s')
+      console.log(toStringTime(process.hrtime(time))+' DONE')
     }
     process.exit()
   } else {
