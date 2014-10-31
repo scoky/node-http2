@@ -83,7 +83,12 @@ function run(url) {
     }
     // Following redirect
     if (argv.f && (response.statusCode >= 300 && response.statusCode < 400) && response.headers['location']) {
-      run(require('url').resolve(options.href, response.headers['location']))
+      var nurl = require('url').resolve(options.href, response.headers['location'])
+      if (argv.v) {
+	console.log('REDIRECT='+nurl)
+      }
+      run(nurl)
+      // Read the data and ignore
       response.on('data', function(data) {})
       response.on('end', function() {})
     } else {
@@ -101,10 +106,7 @@ function run(url) {
     if (argv.v) {
       console.log('PUSH='+pushRequest.url)
     }
-    pushRequest.on('response', function(pushResponse) {
-      pushResponse.on('data', function(data) {})
-      pushResponse.on('end', function() {})
-    })
+    pushRequest.cancel()
   })
 }
 
