@@ -69,10 +69,16 @@ function run(url) {
     request.on('newConnection', function(endpoint) {
       console.log(toStringTime(process.hrtime(time))+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
     })
-    request.on('protocolNegotiated', function(protocol) {
-      console.log(toStringTime(process.hrtime(time))+' PROTOCOL='+protocol)
-    })
   }
+  request.on('protocolNegotiated', function(protocol) {
+    if (argv.v) {
+      console.log(toStringTime(process.hrtime(time))+' PROTOCOL='+protocol)
+    }
+    if (protocol === undefined || protocol.indexOf('h2') !== 0) {
+      console.log(toStringTime(process.hrtime(time))+' PROTOCOL_NEGOTIATE_FAILED')
+      process.exit()
+    }
+  })
   request.on('error', function(err) {
     console.log('ERROR='+err)
   })
