@@ -12,9 +12,10 @@ http2.globalAgent = new http2.Agent({
 // Parse argv
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
-  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t times] [-o file]')
+  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
-  console.log('-t number of times to perform the request')
+  console.log('-t timeout in milliseconds')
+  console.log('-n number of times to perform the request')
   console.log('-v verbose output')
   console.log('-o write output to file')
   console.log('-f follow redirects')
@@ -22,12 +23,15 @@ if (argv.h || argv._.length != 1) {
   console.log('-h print this help menu')
   process.exit()
 }
-if (!argv.t) {
-  argv.t = 1
+if (!argv.n) {
+  argv.n = 1
 }
 if (argv.k) {
   // Ignore cert errors
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+}
+if (argv.t > 0) {
+  setTimeout(timedout, argv.t)
 }
 
 function createOptions(url) {
@@ -96,6 +100,7 @@ function run(url) {
       if (argv.o) {
         response.pipe(fs.createWriteStream(argv.o))
       } else {
+        console.log(toStringTime(process.hrtime(time))+' CONTENT=...')
         response.pipe(process.stdout)
       }
       response.on('end', finish)
@@ -124,7 +129,7 @@ var finished = 0
 function finish() {
   finished += 1
   // Run the load the requested number of times
-  if (finished >= argv.t) {
+  if (finished >= argv.n) {
     console.log('')
     if (argv.v) {
       console.log(toStringTime(process.hrtime(time))+' DONE')
@@ -134,4 +139,9 @@ function finish() {
     // Run it all again
     setTimeout(run, 100, argv._[0])
   }
+}
+
+function timedout() {
+  console.log(toStringTime(process.hrtime(time))+' TIMEOUT')
+  process.exit()
 }
