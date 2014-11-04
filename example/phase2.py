@@ -11,29 +11,31 @@ import cPickle
 from multiprocessing import Pool
 
 ENV = '/usr/bin/env'
-NODE = 'nodejs'
+NODE = 'node'
 CLIENT = 'client.js'
-TIMEOUT = 10000 # 10 seconds
+TIMEOUT = 10
 
 def handle_url(url):
-   url = url.strip()
-   sys.stderr.write('Parsing (url=%s) on (pid=%s)\n' % (url, os.getpid()))
+   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
    try:
-      cmd = [ENV, NODE, CLIENT, url, '-fkv', '-t', str(TIMEOUT)]#, '-o', '/dev/null'] Null content
+      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT)]#, '-o', '/dev/null'] Null content
       sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
-      return url, output
+      return url, output, False
    except Exception as e:
       sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
-      return url, traceback.format_exc()
+      return url, traceback.format_exc(), True
 
 def writeLog(agre):
    log = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
    with gzip.open(log, 'wb') as logf:
       cPickle.dump(agre, logf)
 
-def parseOutput(url, output):
-   estab = nego = response = redirect = False
+def parseOutput(url, output, error):
+   if error:
+	return url+' TIMEOUT_ERROR'
+
+   estab = nego = cnego = response = redirect = False
    for line in output.split('\n'):
 	chunks = line.split()
 	if len(chunks) < 2:
@@ -42,22 +44,23 @@ def parseOutput(url, output):
 	   estab = True
         elif chunks[1].startswith('PROTOCOL=h2'):
 	   nego = True
-        elif chunks[1].startswith('CODE=2'):
+	   cnego = True
+	elif chunks[1].startswith('PROTOCOL='):
+	   cnego = False
+        elif chunks[1].startswith('CODE=2') and cnego:
 	   response = True
-        elif chunks[1].startswith('CODE=3'):
+        elif chunks[1].startswith('CODE=3') and cnego:
 	   redirect = True
 
    if not estab:
-	return url+' NO_HANDSHAKE'
+	return url+' NO_TCP_HANDSHAKE'
    if not nego:
 	return url+' NO_H2_SUPPORT'
    if not response and not redirect:
 	return url+' PROTOCOL_ERROR'
    if not response and redirect:
-	return url+' REDIRECT'
-   return url+' FULL_SUPPORT'
-
-      
+	return url+' REDIRECT_TO_H1'
+   return url+' H2_SUPPORT'
 
 if __name__ == "__main__":
    # set up command line args
@@ -80,9 +83,10 @@ if __name__ == "__main__":
    sys.stderr.write('Command process (pid=%s)\n' % os.getpid())
 
    # Read input into local storage
-   urls = []
+   urls = set()
    for line in args.infile:
-      urls.append(line.strip())
+      if 'h2-14' in line.split(None, 1)[1]:
+        urls.add(line.strip().split(None, 1)[0])
    args.infile.close()
 
    pool = Pool(args.threads)
@@ -92,10 +96,11 @@ if __name__ == "__main__":
      for result in results:
 	url = result[0]
 	output = result[1]
+	error = results[2]
 	if args.directory != None:
 	   agre[url] = output
 	
-        args.outfile.write(parseOutput(url, output)+'\n')
+        args.outfile.write(parseOutput(url, output, error)+'\n')
    except KeyboardInterrupt:
      pool.terminate()
      sys.exit()
