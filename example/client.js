@@ -60,6 +60,10 @@ function createOptions(url) {
 function run(url) {
   var options = createOptions(url)
   var request = null
+
+  if (argv.v) {
+    console.log(getTimeString()+' REQUEST='+options.href)
+  }
   if (options.plain) {
     request = http2.raw.request(options)
   } else {
@@ -67,35 +71,35 @@ function run(url) {
   }
   if (argv.v) {
     request.on('newConnection', function(endpoint) {
-      console.log(toStringTime(process.hrtime(time))+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
+      console.log(getTimeString()+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
     })
   }
   request.on('protocolNegotiated', function(protocol) {
     if (argv.v) {
-      console.log(toStringTime(process.hrtime(time))+' PROTOCOL='+protocol)
+      console.log(getTimeString()+' PROTOCOL='+protocol)
     }
     if (protocol === undefined || protocol.indexOf('h2') !== 0) {
-      console.log(toStringTime(process.hrtime(time))+' PROTOCOL_NEGOTIATE_FAILED')
-      process.exit()
+      console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED')
+      process.exit(2)
     }
   })
   request.on('error', function(err) {
-    console.log('ERROR='+err)
+    console.log(getTimeString()+' ERROR='+err)
   })
   request.end()
 
   // Receiving the response
   request.on('response', function(response) {
     if (argv.v) {
-      console.log(toStringTime(process.hrtime(time))+' RESPONSE='+options.href)
-      console.log(toStringTime(process.hrtime(time))+' CODE='+response.statusCode)
-      console.log(toStringTime(process.hrtime(time))+' HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
+      console.log(getTimeString()+' RESPONSE='+options.href)
+      console.log(getTimeString()+' CODE='+response.statusCode)
+      console.log(getTimeString()+' HEADERS='+JSON.stringify(response.headers, null, '\t')+'\n')
     }
     // Following redirect
     if (argv.f && (response.statusCode >= 300 && response.statusCode < 400) && response.headers['location']) {
       var nurl = require('url').resolve(options.href, response.headers['location'])
       if (argv.v) {
-	console.log(toStringTime(process.hrtime(time))+' REDIRECT='+nurl)
+	console.log(getTimeString()+' REDIRECT='+nurl)
       }
       run(nurl)
 
@@ -106,7 +110,7 @@ function run(url) {
       if (argv.o) {
         response.pipe(fs.createWriteStream(argv.o))
       } else {
-        console.log(toStringTime(process.hrtime(time))+' CONTENT=...')
+        console.log(getTimeString()+' CONTENT=...')
         response.pipe(process.stdout)
       }
       response.on('end', finish)
@@ -116,7 +120,7 @@ function run(url) {
   // Receiving push streams
   request.on('push', function(pushRequest) {
     if (argv.v) {
-      console.log(toStringTime(process.hrtime(time))+' PUSH='+pushRequest.url)
+      console.log(getTimeString()+' PUSH='+pushRequest.url)
     }
     pushRequest.cancel()
   })
@@ -126,7 +130,8 @@ var time = process.hrtime()
 // Run the load for the first time
 run(argv._[0])
 
-function toStringTime(tval) {
+function getTimeString() {
+  var tval = process.hrtime(time)
   return '['+(tval[0] + tval[1]/1000000000).toFixed(3)+'s]'
 }
 
@@ -138,7 +143,7 @@ function finish() {
   if (finished >= argv.n) {
     console.log('')
     if (argv.v) {
-      console.log(toStringTime(process.hrtime(time))+' DONE')
+      console.log(getTimeString()+' DONE')
     }
     process.exit()
   } else {
@@ -148,6 +153,6 @@ function finish() {
 }
 
 function timedout() {
-  console.log(toStringTime(process.hrtime(time))+' TIMEOUT')
-  process.exit()
+  console.log(getTimeString()+' TIMEOUT')
+  process.exit(1)
 }

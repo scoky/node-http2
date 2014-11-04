@@ -9,14 +9,13 @@ var Browser = require("../../zombie/src/zombie")
 
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
-  console.log('USAGE: node client.js <url> [timeout] [-p proxy:port] [-v] [-h]')
+  console.log('USAGE: node client.js <url> [-t timeout] [-p proxy:port] [-v] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
+  console.log('-t timeout in milliseconds')
+  console.log('-v verbose output')
   console.log('-h print this help menu')
   process.exit()
 }
-
-tout = argv._[1] || '-1'
-tout = parseInt(tout)
 
 var browser = Browser.create()
 // Proxy present
@@ -26,17 +25,73 @@ if (argv.p) {
 // Do not use dns or ports map. Do not work.
 //Browser.dns.map('*', 'A', '195.235.93.225')
 //Browser.ports.map('195.235.93.225', 3456)
-if (tout != -1) {
-  browser.waitDuration = tout*1000-1000
-  // Give the browser a brief chance to clean up (hence -1000)
-  setTimeout(function() { process.exit(1) }, tout*1000)
+if (argv.t) {
+  browser.waitDuration = argv.t*1000-500
+  // Give the browser a brief chance to clean up (hence -500)
+  setTimeout(function() { 
+    console.log(getTimeString()+' TIMEOUT')
+    process.exit(1) 
+  }, argv.t*1000)
 }
+// Start the timer
 var time = process.hrtime()
+function getTimeString() {
+  var tval = process.hrtime(time)
+  return '['+(tval[0] + tval[1]/1000000000).toFixed(3)+'s]'
+}
+
+browser.on('request', function(req) {
+  if (argv.v) {
+    console.log(getTimeString()+' REQUEST='+req.url)
+  }
+})
+
+browser.on('response', function(req, res) {
+  if (argv.v) {
+    console.log(getTimeString()+' RESPONSE='+res.url)
+    console.log(getTimeString()+' CODE='+res.statusCode)
+    console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
+  }
+})
+
+browser.on('redirect', function(req, res, red) {
+  if (argv.v) {
+    console.log(getTimeString()+' RESPONSE='+req.url)
+    console.log(getTimeString()+' CODE='+res.statusCode)
+    console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
+    console.log(getTimeString()+' REDIRECT='+red.url)
+  }
+})
+
+browser.on('push', function(pushReq) {
+  if (argv.v) {
+    console.log(getTimeString()+' PUSH='+pushReq.url)
+  }
+  pushReq.cancel()
+})
+
+browser.on('newConnection', function(endpoint) {
+  if (argv.v) {
+    console.log(getTimeString()+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
+  }
+})
+
+browser.on('protocolNegotiated', function(protocol) {
+  if (argv.v) {
+    console.log(getTimeString()+' PROTOCOL='+protocol)
+  }
+  if (protocol === undefined || protocol.indexOf('h2') !== 0) {
+    console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED')
+    process.exit(2)
+  }
+})
+
 browser.visit(argv._[0], function () {
   browser.assert.success()
-  browser.resources.dump()
-  time = process.hrtime(time)
-  console.log('LOAD_TIME='+(time[0] + time[1]/1000000000).toFixed(3)+'s')
+//  browser.resources.dump()
+
+
+  console.log(getTimeString()+' DONE')
   process.exit(0)
 });
 
