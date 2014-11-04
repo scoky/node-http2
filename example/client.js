@@ -14,7 +14,7 @@ var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
   console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
-  console.log('-t timeout in milliseconds')
+  console.log('-t timeout in seconds')
   console.log('-n number of times to perform the request')
   console.log('-v verbose output')
   console.log('-o write output to file')
@@ -31,7 +31,7 @@ if (argv.k) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 }
 if (argv.t > 0) {
-  setTimeout(timedout, argv.t)
+  setTimeout(timedout, argv.t*1000)
 }
 
 function createOptions(url) {
@@ -145,7 +145,7 @@ function finish() {
     if (argv.v) {
       console.log(getTimeString()+' DONE')
     }
-    process.exit()
+    setImmediate(process.exit)
   } else {
     // Run it all again
     setTimeout(run, 100, argv._[0])

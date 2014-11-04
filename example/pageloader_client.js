@@ -11,7 +11,7 @@ var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
   console.log('USAGE: node client.js <url> [-t timeout] [-p proxy:port] [-v] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
-  console.log('-t timeout in milliseconds')
+  console.log('-t timeout in seconds')
   console.log('-v verbose output')
   console.log('-h print this help menu')
   process.exit()
@@ -40,13 +40,27 @@ function getTimeString() {
   return '['+(tval[0] + tval[1]/1000000000).toFixed(3)+'s]'
 }
 
+var reqs = []
+var reps = []
 browser.on('request', function(req) {
+  // Prevent duplicates
+  if (reqs.indexOf(req.url) !== -1) {
+    return
+  }
+  reqs.push(req.url)
+
   if (argv.v) {
     console.log(getTimeString()+' REQUEST='+req.url)
   }
 })
 
 browser.on('response', function(req, res) {
+  // Prevent duplicates
+  if (reps.indexOf(res.url) !== -1) {
+    return
+  }
+  reps.push(res.url)
+
   if (argv.v) {
     console.log(getTimeString()+' RESPONSE='+res.url)
     console.log(getTimeString()+' CODE='+res.statusCode)
@@ -55,6 +69,12 @@ browser.on('response', function(req, res) {
 })
 
 browser.on('redirect', function(req, res, red) {
+  // Prevent duplicates
+  if (reps.indexOf(res.url) !== -1) {
+    return
+  }
+  reps.push(res.url)
+
   if (argv.v) {
     console.log(getTimeString()+' RESPONSE='+req.url)
     console.log(getTimeString()+' CODE='+res.statusCode)
@@ -88,8 +108,8 @@ browser.on('protocolNegotiated', function(protocol) {
 
 browser.visit(argv._[0], function () {
   browser.assert.success()
+// Poorly structure output. We can do better
 //  browser.resources.dump()
-
 
   console.log(getTimeString()+' DONE')
   process.exit(0)
