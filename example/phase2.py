@@ -33,9 +33,9 @@ def writeLog(agre):
 
 def parseOutput(url, output, error):
    if error:
-	return url+' TIMEOUT_ERROR'
+	return url+' UNKNOWN_ERROR'
 
-   estab = nego = cnego = response = redirect = False
+   estab = nego = cnego = response = redirect = notfound = serverError = False
    for line in output.split('\n'):
 	chunks = line.split()
 	if len(chunks) < 2:
@@ -51,16 +51,32 @@ def parseOutput(url, output, error):
 	   response = True
         elif chunks[1].startswith('CODE=3') and cnego:
 	   redirect = True
+	elif chunks[1].startswith('CODE=4') and cnego:
+	   notfound = True
+	elif chunks[1].startswith('CODE=5') and cnego:
+	   serverError = True
 
+   # Received a 2xx response
+   if response:
+        return url+' H2_SUPPORT'
+   # Could not connection
    if not estab:
 	return url+' NO_TCP_HANDSHAKE'
+   # Could not negotiate h2 via NPN/ALPN
    if not nego:
 	return url+' NO_H2_SUPPORT'
-   if not response and not redirect:
-	return url+' PROTOCOL_ERROR'
-   if not response and redirect:
+   # Redirected
+   if redirect:
 	return url+' REDIRECT_TO_H1'
-   return url+' H2_SUPPORT'
+   # Received a 4xx response
+   if notfound:
+	return url+' 4XX_CODE'
+   # Received a 5xx response
+   if serverError:
+	return url+' 5XX_CODE'
+   # No response, protocol error
+   return url+' PROTOCOL_ERROR'
+   
 
 if __name__ == "__main__":
    # set up command line args
@@ -88,7 +104,7 @@ if __name__ == "__main__":
    for line in args.infile:
       try:
          url, ptcls = line.strip().split(None, 1)
-         if 'h2-14' in ptcls:
+         if 'h2' in ptcls:
            urls.add(url)
            protocols[url] = ptcls
       except Exception as e:
