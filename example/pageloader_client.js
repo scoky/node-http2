@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var http2 = require('..');
 http2.globalAgent = new http2.Agent({
   log: require('../test/util').createLogger('client')
@@ -9,7 +11,7 @@ var Browser = require("../../zombie/src/zombie")
 
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
-  console.log('USAGE: node client.js <url> [-t timeout] [-p proxy:port] [-v] [-h]')
+  console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-v] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
   console.log('-t timeout in seconds')
   console.log('-v verbose output')
@@ -62,7 +64,7 @@ browser.on('response', function(req, res) {
   reps.push(res.url)
 
   if (argv.v) {
-    console.log(getTimeString()+' RESPONSE='+res.url)
+    console.log(getTimeString()+' RESPONSE='+res.url+' SIZE='+Buffer(res.body).length)
     console.log(getTimeString()+' CODE='+res.statusCode)
     console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
   }
@@ -76,7 +78,7 @@ browser.on('redirect', function(req, res, red) {
   reps.push(res.url)
 
   if (argv.v) {
-    console.log(getTimeString()+' RESPONSE='+req.url)
+    console.log(getTimeString()+' RESPONSE='+req.url+' SIZE='+Buffer(res.body).length)
     console.log(getTimeString()+' CODE='+res.statusCode)
     console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
     console.log(getTimeString()+' REDIRECT='+red.url)

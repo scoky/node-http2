@@ -11,8 +11,8 @@ import cPickle
 from multiprocessing import Pool
 
 ENV = '/usr/bin/env'
-NODE = 'node'
-CLIENT = 'client.js'
+NODE = '/home/bkyle/node-v0.10.33/out/Release/node'
+CLIENT = '/home/bkyle/node-http2/example/client.js'
 TIMEOUT = 10
 
 def handle_url(url):
@@ -84,9 +84,15 @@ if __name__ == "__main__":
 
    # Read input into local storage
    urls = set()
+   protocols = {}
    for line in args.infile:
-      if 'h2-14' in line.split(None, 1)[1]:
-        urls.add(line.strip().split(None, 1)[0])
+      try:
+         url, ptcls = line.strip().split(None, 1)
+         if 'h2-14' in ptcls:
+           urls.add(url)
+           protocols[url] = ptcls
+      except Exception as e:
+         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
    args.infile.close()
 
    pool = Pool(args.threads)
@@ -94,13 +100,11 @@ if __name__ == "__main__":
    try:
      results = pool.imap(handle_url, urls, args.chunk)
      for result in results:
-	url = result[0]
-	output = result[1]
-	error = results[2]
+	url, output, error = result
 	if args.directory != None:
 	   agre[url] = output
 	
-        args.outfile.write(parseOutput(url, output, error)+'\n')
+        args.outfile.write(parseOutput(url, output, error)+' '+protocols[url]+'\n')
    except KeyboardInterrupt:
      pool.terminate()
      sys.exit()

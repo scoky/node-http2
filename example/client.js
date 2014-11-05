@@ -1,4 +1,4 @@
-#!/user/bin/env node
+#!/usr/bin/env node
 
 var fs = require('fs')
 var path = require('path')
@@ -12,7 +12,7 @@ http2.globalAgent = new http2.Agent({
 // Parse argv
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
-  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file]')
+  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file] [-u user-agent header] [-a accept header] [-e accept-encoding header]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
   console.log('-t timeout in seconds')
   console.log('-n number of times to perform the request')
@@ -20,6 +20,9 @@ if (argv.h || argv._.length != 1) {
   console.log('-o write output to file')
   console.log('-f follow redirects')
   console.log('-k ignore certificate errors')
+  console.log('-u user-agent header (default curl/7.38.0)')
+  console.log('-a accept header (default */*)')
+  console.log('-e accept-encoding header (default *)')
   console.log('-h print this help menu')
   process.exit()
 }
@@ -40,8 +43,9 @@ function createOptions(url) {
   options.plain = options.protocol == 'http:'
   options.headers = {
     ':authority' : options.hostname,
-    'user-agent' : 'curl/7.38.0', // Let's make them think we are curl for now
-    'accept' : '*/*'
+    'user-agent' : argv.u || 'curl/7.38.0', // Let's make them think we are curl for now
+    'accept' : argv.a || '*/*',
+    'accept-encoding' : argv.e || '*'
   }
   options.servername = options.hostname
 
@@ -154,5 +158,5 @@ function finish() {
 
 function timedout() {
   console.log(getTimeString()+' TIMEOUT')
-  process.exit(1)
+  process.exit(0)
 }
