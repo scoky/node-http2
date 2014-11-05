@@ -108,7 +108,7 @@ if __name__ == "__main__":
 	if args.directory != None:
 	   agre[url] = output
 	
-        args.outfile.write(url+' '+parseFetch(url, output, error)+' '+protocols[url]+'\n')
+        args.outfile.write(parseFetch(url, output, error)+' '+protocols[url]+'\n')
    except KeyboardInterrupt:
      pool.terminate()
      sys.exit()
