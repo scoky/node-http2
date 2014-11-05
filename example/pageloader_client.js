@@ -32,7 +32,7 @@ if (argv.t) {
   // Give the browser a brief chance to clean up (hence -500)
   setTimeout(function() { 
     console.log(getTimeString()+' TIMEOUT')
-    process.exit(1) 
+    process.exit(0) 
   }, argv.t*1000)
 }
 // Start the timer
