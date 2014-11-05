@@ -25,7 +25,7 @@ class Stats(object):
       self.objects = self.connections = self.pushes = None
 
    def formString(self):
-      return ' '.join([self.url, int(self.objects), int(self.connections), int(self.pushes)])
+      return ' '.join([self.url, str(self.objects), str(self.connections), str(self.pushes)])
 
 # Fetch the whole page using node js for obtaining statistics
 def handle_url(url):
