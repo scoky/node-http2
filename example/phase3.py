@@ -14,9 +14,9 @@ import cPickle
 from multiprocessing import Pool
 
 ENV = '/usr/bin/env'
-NODE = 'node'
-CLIENT = '/home/b.kyle/github/node-http2/example/pageloader_client.js'
-TIMEOUT = 10
+NODE = '/home/bkyle/node-v0.10.33/out/Release/node'
+CLIENT = '/home/bkyle/node-http2/example/pageloader_client.js'
+TIMEOUT = 20
 
 class Stats(object):
    def __init__(self, url, output):
