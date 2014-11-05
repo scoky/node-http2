@@ -158,5 +158,5 @@ function finish() {
 
 function timedout() {
   console.log(getTimeString()+' TIMEOUT')
-  process.exit(1)
+  process.exit(0)
 }
