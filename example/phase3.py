@@ -19,7 +19,7 @@ TIMEOUT = 10
 TSHARK_STAT = 'tshark -q -z io,stat,0.001 -r %s'
 TSHARK_CAP = 'tshark -i %s -w %s %s'
 FIREFOX_CMD = '/home/b.kyle/Downloads/firefox-36.0a1/firefox -P %s -no-remote "%s"'
-#
+
 CAP_LINE = re.compile('^\|\s+[\d\.]+\s+\<\>\s+([\d\.]+)\s+\|\s+\d+\s+\|\s+(\d+)')
 
 #PROFILES
@@ -80,7 +80,6 @@ def fetch_url(url):
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
    return ''.join(random.choice(chars) for _ in range(size))
 def generate_file():
-   return 'dump.pcap'
    while True:
       filename = os.path.join(args.directory, id_generator()+'.pcap')
    if not os.path.isfile(filename):

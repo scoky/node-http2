@@ -85,7 +85,7 @@ if __name__ == "__main__":
    parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
    parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
    parser.add_argument('-d', '--directory', default=None, help='Directory for writing log')
-   parser.add_argument('-t', '--threads', default=None, type=int, help='number of threads to user')
+   parser.add_argument('-t', '--threads', default=None, type=int, help='number of threads to use')
    parser.add_argument('-c', '--chunk', default=20, help='chunk size to assign to each thread')
    args = parser.parse_args()
 
