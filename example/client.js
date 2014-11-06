@@ -84,7 +84,7 @@ function run(url) {
     }
     if (protocol === undefined || protocol.indexOf('h2') !== 0) {
       console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED')
-      process.exit(2)
+      process.exit(0)
     }
   })
   request.on('error', function(err) {
