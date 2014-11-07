@@ -63,7 +63,7 @@ def parseOutput(url, output, error):
 	return url+' NO_TCP_HANDSHAKE'
    # Could not negotiate h2 via NPN/ALPN
    if not nego:
-	return url+' NO_H2_SUPPORT'
+	return url+' NO_H2_NEGO'
    # Redirected
    if redirect:
 	return url+' REDIRECT_TO_H1'
