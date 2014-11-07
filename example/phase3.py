@@ -25,7 +25,7 @@ class Stats(object):
       self.objects = self.connections = self.pushes = None
 
    def formString(self):
-      return ' '.join([self.url, str(self.objects), str(self.connections), str(self.pushes)])
+      return self.url+" objs="+str(self.objects)+" conns="+str(self.connections)+" pushes="+str(self.pushes)
 
 # Fetch the whole page using node js for obtaining statistics
 def handle_url(url):
@@ -40,8 +40,7 @@ def handle_url(url):
       return url, traceback.format_exc(), True
 
 def writeLog(agre):
-   filename = os.path.join(args.directory, 'stats-'+datetime.date.today().isoformat()+'.pickle.gz')
-   with gzip.open(filename, 'wb') as logf:
+   with gzip.open(args.logfile, 'wb') as logf:
       cPickle.dump(agre, logf)
 
 def parseFetch(url, output, error):
@@ -83,18 +82,16 @@ if __name__ == "__main__":
         except Exception as e:
             sys.stderr.write('Error making output directory: %s\n' % args.directory)
             sys.exit(-1)
+	args.logfile = os.path.join(args.directory, 'stats-'+datetime.date.today().isoformat()+'.pickle.gz')
 
    sys.stderr.write('Command process (pid=%s)\n' % os.getpid())
 
    # Read input into local storage
    urls = set()
-   protocols = {}
    for line in args.infile:
       try:
-         url, supported, ptcls = line.strip().split(None, 2)
-         if 'H2_SUPPORT' == supported:
-           urls.add(url)
-           protocols[url] = ptcls
+         url = line.strip().split(None, 1)[0]
+         urls.add(url)
       except Exception as e:
          sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
    args.infile.close()
@@ -108,7 +105,7 @@ if __name__ == "__main__":
 	if args.directory != None:
 	   agre[url] = output
 	
-        args.outfile.write(parseFetch(url, output, error)+' '+protocols[url]+'\n')
+        args.outfile.write(parseFetch(url, output, error)+'\n')
    except KeyboardInterrupt:
      pool.terminate()
      sys.exit()

@@ -72,10 +72,10 @@ browser.on('response', function(req, res) {
 
 browser.on('redirect', function(req, res, red) {
   // Prevent duplicates
-  if (reps.indexOf(res.url) !== -1) {
+  if (reps.indexOf(req.url) !== -1) {
     return
   }
-  reps.push(res.url)
+  reps.push(req.url)
 
   if (argv.v) {
     console.log(getTimeString()+' RESPONSE='+req.url+' SIZE='+Buffer(res.body).length)
