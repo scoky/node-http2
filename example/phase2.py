@@ -26,8 +26,8 @@ def handle_url(url):
       sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
       return url, traceback.format_exc(), True
 
-def writeLog(agre):
-   with gzip.open(args.logfile, 'wb') as logf:
+def writeLog(agre, logfile):
+   with gzip.open(logfile, 'wb') as logf:
       cPickle.dump(agre, logf)
 
 def parseOutput(url, output, error):
@@ -88,8 +88,9 @@ if __name__ == "__main__":
    parser.add_argument('-c', '--chunk', default=20, help='chunk size to assign to each thread')
    args = parser.parse_args()
 
+   logfile = None
    if args.directory != None and not os.path.isdir(args.directory):
-	args.logfile = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
+	logfile = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
         try:
             os.makedirs(args.directory)
         except Exception as e:
@@ -124,4 +125,4 @@ if __name__ == "__main__":
      pool.terminate()
      sys.exit()
    if args.directory != None:
-     writeLog(agre)
+     writeLog(agre, logfile)
