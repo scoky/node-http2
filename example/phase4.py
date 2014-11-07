@@ -10,32 +10,57 @@ import argparse
 import traceback
 import subprocess
 import datetime
+import signal
 
-ENV = '/usr/bin/env'
-NODE = 'node'
-CLIENT = '/home/b.kyle/github/node-http2/example/pageloader_client.js'
 TIMEOUT = 10
 
-TSHARK_STAT = 'tshark -q -z io,stat,0.001 -r %s'
-TSHARK_CAP = 'tshark -i %s -w %s %s'
-FIREFOX_CMD = '/home/b.kyle/Downloads/firefox-36.0a1/firefox -P %s -no-remote "%s"'
-
-CAP_LINE = re.compile('^\|\s+[\d\.]+\s+\<\>\s+([\d\.]+)\s+\|\s+\d+\s+\|\s+(\d+)')
+STRACE = 'strace -fttte trace=sendto,connect,recvfrom -e signal=kill'
+FIREFOX = '/home/b.kyle/Downloads/firefox-36.0a1/firefox -P %s -no-remote --private-window "%s"'
 
 #PROFILES
 HTTP2 = 'http2'
 HTTP1 = 'http1.1'
 SPDY = 'spdy'
 
+class TimeoutError(Exception):
+    pass
+
+class Timeout:
+    '''Can be used w/ 'with' to make arbitrary function calls with timeouts'''
+    def __init__(self, seconds=10, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+    def handle_timeout(self, signum, frame):
+        raise TimeoutError(self.error_message)
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
 class Fetch(object):
-   def __init__(self, protocol, filename):
+   def __init__(self, protocol):
       self.protocol = protocol
-      self.filename = filename
       self.time_p25th = self.time_p50th = self.time_p75th = self.time = None
-      self.size = 0
+      self.bytesSent = self.bytesRecv = 0
 
    def formString(self):
-      print self.protocol, self.filename, self.size, self.time_p25th, self.time_p50th, self.time_p75th, self.time
+      print self.protocol, self.bytesSent, self.bytesRecv, self.time_p25th, self.time_p50th, self.time_p75th, self.time
+
+   def parseOutput(self, bytesSent, startTime, recv):
+      self.bytesSent = bytesSent
+      self.bytesRecv = recv[-1][1]
+      startTime = float(startTime)
+      self.time = float(recv[-1][0]) - startTime
+      self.time_p25th = self.time_p50th = self.time_p75th = None
+      for res in recv:
+         if not self.time_p25th and res[1] >= 0.25*self.bytesRecv:
+            self.time_p25th = float(res[0]) - startTime
+         if not self.time_p50th and res[1] >= 0.50*self.bytesRecv:
+            self.time_p50th = float(res[0]) - startTime
+         if not self.time_p75th and res[1] >= 0.75*self.bytesRecv:
+            self.time_p75th = float(res[0]) - startTime
+            break   
 
 # Clear the cache for a given profile
 def clear_cache(profile):
@@ -52,83 +77,75 @@ def clear_cache(profile):
   except Exception as e:
     sys.stderr.write('Error clearing cache: %s, %s\n' % (e, traceback.format_exc()))
 
-# Generate a unique filename for pcaps
-def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
-   return ''.join(random.choice(chars) for _ in range(size))
-def generate_file():
-   while True:
-      filename = os.path.join(args.directory, id_generator()+'.pcap')
-   if not os.path.isfile(filename):
-      return filename
-
 # Fetch the whole page using firefox for obtaining timing information
 def measure_loadtime(url, protocol, timeout=15):
-   tshark_proc = firefox_proc = None
-   filename = generate_file()
-
+   socks = set()
+   pause = {}
+   recv = []
+   startTime = None
+   bytesSent = bytesRecv = 0
    try:
-      try:
-         cmd = TSHARK_CAP % ('wlan0', filename, 'port 443') #args.interface
-         tshark_proc = subprocess.Popen(cmd, shell=True)
-      except Exception as e:
-         sys.stderr.write('Error starting tshark: %s\n%s\n' % (e, traceback.format_exc()))
-         return None
+      cmd = STRACE + ' ' + FIREFOX % (protocol, 'https://'+url)
+      proc = subprocess.Popen(cmd, bufsize=4096, shell=True, stderr=subprocess.PIPE)
+      with Timeout(seconds=timeout):
+	 for line in proc.stderr:
+            chunks = line.split(None, 4)
+            if len(chunks) != 5:
+               continue
+            # _, process id, call time, system function, _
+            _, pid, time, cfunc, remainder = chunks
 
-      try:
-         cmd = FIREFOX_CMD % (protocol, 'https://'+url)
-         firefox_proc = subprocess.Popen(cmd, shell=True)
-      except Exception as e:
-         sys.stderr.write('Error starting firefox: %s\n%s\n' % (e, traceback.format_exc()))
-         return None
+            # return from process interrupt
+            if cfunc == '<...':
+  	       _, count = remainder.rsplit(None, 1)
+               cfunc, fd, remainder = pause[pid]
+            else:
+               chunks = cfunc.rstrip(',').split('(', 1)
+               if len(chunks) != 2:
+                  continue
+               cfunc, fd = chunks
+               _, count = remainder.rsplit(None, 1)
 
-      time.sleep(timeout)
-      return filename
+               # Call unfinished due to interrupt, save process state
+               if count == '...>':
+                  pause[pid] = [cfunc, fd, remainder]
+                  continue
+
+            # TLS socket connect call
+            if cfunc == 'connect' and 'htons(443)' in remainder:
+               if not startTime:
+                  startTime = time
+               socks.add(fd)
+            elif cfunc == 'sendto' and fd in socks:
+               # Count bytes sent
+               try:
+                  bytesSent += int(count)
+               except ValueError:
+                  pass
+            elif cfunc == 'recvfrom' and fd in socks:
+               # Count bytes recv'd
+               try:
+                  c = int(count)
+                  if c > 0:
+                     bytesRecv += c
+                     recv.append([time, bytesRecv])
+               except ValueError:
+                  pass
+   except TimeoutError as e:
+      # Normal termination
+      pass
    finally:
-      if tshark_proc != None:
-         sys.stderr.write('Killing tshark\n')
-         tshark_proc.kill()
-         tshark_proc.wait()
-      # Make sure tshark died
       try:
-         subprocess.check_output('kill -9 `pidof tshark`', shell=True)
+         subprocess.check_output('killall firefox', shell=True)
       except Exception as e:
-         sys.stderr.write('Error killing tshark: %s\n%s\n' % (e, traceback.format_exc()))
-      if firefox_proc != None:
-         sys.stderr.write('Killing firefox\n')
-         firefox_proc.kill()
-         firefox_proc.wait()
-      # Make sure firefox died
-      try:
-         subprocess.check_output('kill -9 `pidof firefox`', shell=True)
-      except Exception as e:
-         sys.stderr.write('Error killing firefox: %s\n%s\n' % (e, traceback.format_exc()))
+         sys.stderr.write('Error killing firefox: %s\n%s\n' % (e, traceback.format_exc()))      # Make sure tshark died
+
+   return bytesSent, startTime, recv
 
 def writeLog(agre):
    filename = os.path.join(args.directory, 'stats-'+datetime.date.today().isoformat()+'.pickle.gz')
    with gzip.open(filename, 'wb') as logf:
       cPickle.dump(agre, logf)
-
-def writeStats(stats):
-   result = stats.url+' '+stats.objects+' '+stats.connections+' '+stats.pushes
-
-def parseFetch(url, output):
-   stats = Stats(url, output)
-   stats.objects = 0
-   stats.connections = 0
-   stats.pushes = 0
-
-   for line in output.split('\n'):
-	chunks = line.split()
-	if len(chunks) < 2:
-		continue
-	if chunks[1].startswith('TCP_CONNECTION='):
-	   stats.connections += 1
-        elif chunks[1].startswith('PUSH='):
-	   stats.pushes += 1
-        elif chunks[1].startswith('REQUEST='):
-	   stats.objects += 1
-
-   return stats
 
 def parseTshark(protocol, filename):
    output = None
@@ -162,6 +179,14 @@ def parseTshark(protocol, filename):
    return fetch
 
 if __name__ == "__main__":
+   p = HTTP2
+   clear_cache(p)
+   bytesSent, startTime, recv = measure_loadtime('nghttp2.org', p)
+   f = Fetch(p)
+   f.parseOutput(bytesSent, startTime, recv)
+   f.formString()
+   sys.exit()
+
    # set up command line args
    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
                      description='Using input URL file, test each url for HTTP2 features and performance')
@@ -172,37 +197,30 @@ if __name__ == "__main__":
    parser.add_argument('-c', '--chunk', default=20, help='chunk size to assign to each thread')
    args = parser.parse_args()
 
-   if args.directory == None:
-	print 'Must specify a directory'
-	sys.exit()
-
-   args.directory = os.path.join(args.directory, datetime.date.today().isoformat())
-   if not os.path.isdir(args.directory):
+   if args.directory != None and not os.path.isdir(args.directory):
         try:
             os.makedirs(args.directory)
         except Exception as e:
             sys.stderr.write('Error making output directory: %s\n' % args.directory)
             sys.exit(-1)
+   logfile = None
+   if args.directory != None:
+   	logfile = os.path.join(args.directory, 'perf-'+datetime.date.today().isoformat()+'.pickle.gz')
 
    sys.stderr.write('Command process (pid=%s)\n' % os.getpid())
 
    # Read input into local storage
    urls = set()
    for line in args.infile:
-      if 'H2_SUPPORT' in line.split(None, 1)[1]:
-        urls.add(line.strip().split(None, 1)[0])
+      try:
+         url = line.strip().split(None, 1)[0]
+         urls.add(url)
+      except Exception as e:
+         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
    args.infile.close()
 
    agre = {}
    for url in urls:
-     output, error = fetch_url(url)
-     if error:
-        agre[url] = None
-	continue
-
-     stats = parseFetch(url, output)
-     agre[url] = stats
-
      # Time the webpage fetch with various protocols
      for i in range(numtrials):
         filename = measure_loadtime(url, HTTP2)
@@ -216,5 +234,5 @@ if __name__ == "__main__":
 	
      args.outfile.write(writeStats(stats)+'\n')
 
-   writeLog(agre)
+   writeLog(agre, logfile)
 
