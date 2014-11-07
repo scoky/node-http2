@@ -27,8 +27,7 @@ def handle_url(url):
       return url, traceback.format_exc(), True
 
 def writeLog(agre):
-   log = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
-   with gzip.open(log, 'wb') as logf:
+   with gzip.open(args.logfile, 'wb') as logf:
       cPickle.dump(agre, logf)
 
 def parseOutput(url, output, error):
@@ -90,6 +89,7 @@ if __name__ == "__main__":
    args = parser.parse_args()
 
    if args.directory != None and not os.path.isdir(args.directory):
+	args.logfile = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
         try:
             os.makedirs(args.directory)
         except Exception as e:
@@ -104,9 +104,8 @@ if __name__ == "__main__":
    for line in args.infile:
       try:
          url, ptcls = line.strip().split(None, 1)
-         if 'h2' in ptcls:
-           urls.add(url)
-           protocols[url] = ptcls
+         urls.add(url)
+         protocols[url] = ptcls
       except Exception as e:
          sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
    args.infile.close()
