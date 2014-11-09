@@ -51,6 +51,9 @@ var server = http2.createServer(options, function(request, response) {
 
   // Do not attempt to pool connections. This tells node to immediately send the request upstream
   poptions.agent = false
+
+  // Header to indicate which proxy sent the request to Awazza
+  poptions.headers['proxy-type'] = 'nodejs'
  
   // Send http/1.1 request to Awazza
   var prequest = http.request(poptions, function (presponse) {

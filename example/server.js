@@ -32,9 +32,25 @@ var server = http2.createServer(options, function(request, response) {
 
   var hostname = request.headers[':authority'] || request.headers['host']
   var dir = path.join(directory, hostname)
-  var url_path = url.parse(request.url).path
+  var details = url.parse(request.url)
+  if (path.extname(details.pathname)) {
+    details.filename = path.basename(details.pathname)
+    details.directory = path.dirname(details.pathname)
+  } else {
+    details.filename = 'index.html'
+    details.directory = details.pathname
+  }
+  var filename = path.join(path.join(dir, details.directory), details.filename)
 
-  fs.readFile(path.join(dir, 'resources.list'), 'utf8', function(err, data) {
+  var rf = fs.createReadStream(filename)
+  rf.on('error', function() {
+    console.log((new Date()).toISOString()+" Could not find: "+request.url)
+    response.writeHead(404)
+    response.end()
+  })
+  rf.pipe(response)
+
+ /* fs.readFile(filename, 'utf8', function(err, data) {
     if (err) {
       console.log((new Date()).toISOString()+" Resource list: "+dir+" Error:"+err)
       send404()
@@ -61,7 +77,7 @@ var server = http2.createServer(options, function(request, response) {
     console.log((new Date()).toISOString()+" Could not find: "+request.url)
     response.writeHead(404)
     response.end()
-  }
+  }*/
 })
 
-server.listen(process.env.HTTP2_PORT || 6789);
+server.listen(process.env.HTTP2_PORT || 5678);
