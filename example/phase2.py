@@ -109,7 +109,7 @@ if __name__ == "__main__":
          urls.add(url)
          protocols[url] = ptcls
       except Exception as e:
-         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
+         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), e))
    args.infile.close()
 
    pool = Pool(args.threads)

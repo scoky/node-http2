@@ -11,6 +11,7 @@ import traceback
 import subprocess
 import datetime
 import signal
+from collections import defaultdict
 
 TIMEOUT = 10
 
@@ -18,9 +19,14 @@ STRACE = 'strace -fttte trace=sendto,connect,recvfrom -e signal=kill'
 FIREFOX = '/home/b.kyle/Downloads/firefox-36.0a1/firefox -P %s -no-remote --private-window "%s"'
 
 #PROFILES
-HTTP2 = 'http2'
-HTTP1 = 'http1.1'
+PROFILE_HTTP2 = 'http2'
+PROFILE_HTTP1 = 'http1.1'
+PROFILE_SPDY = 'spdy'
+
+HTTP2 = 'h2'
+HTTP1 = 'http/1.1'
 SPDY = 'spdy'
+PROTOCOLS = { HTTP2 : PROFILE_HTTP2, HTTP1 : PROFILE_HTTP1, SPDY : PROFILE_SPDY }
 
 class TimeoutError(Exception):
     pass
@@ -45,7 +51,8 @@ class Fetch(object):
       self.bytesSent = self.bytesRecv = 0
 
    def formString(self):
-      print self.protocol, self.bytesSent, self.bytesRecv, self.time_p25th, self.time_p50th, self.time_p75th, self.time
+      return self.protocol+' sent='+str(self.bytesSent)+' recv='+str(self.bytesRecv)+' 25th='+str(self.time_p25th)+\
+	' 50th='+str(self.time_p50th)+' 75th='+str(self.time_p75th)+' total='+str(self.time)
 
    def parseOutput(self, bytesSent, startTime, recv):
       self.bytesSent = bytesSent
@@ -78,14 +85,14 @@ def clear_cache(profile):
     sys.stderr.write('Error clearing cache: %s, %s\n' % (e, traceback.format_exc()))
 
 # Fetch the whole page using firefox for obtaining timing information
-def measure_loadtime(url, protocol, timeout=15):
+def measure_loadtime(url, profile, timeout=15):
    socks = set()
    pause = {}
    recv = []
    startTime = None
    bytesSent = bytesRecv = 0
    try:
-      cmd = STRACE + ' ' + FIREFOX % (protocol, 'https://'+url)
+      cmd = STRACE + ' ' + FIREFOX % (profile, 'https://'+url)
       proc = subprocess.Popen(cmd, bufsize=4096, shell=True, stderr=subprocess.PIPE)
       with Timeout(seconds=timeout):
 	 for line in proc.stderr:
@@ -140,6 +147,8 @@ def measure_loadtime(url, protocol, timeout=15):
       except Exception as e:
          sys.stderr.write('Error killing firefox: %s\n%s\n' % (e, traceback.format_exc()))      # Make sure tshark died
 
+   if bytesSent < 500 or len(recv) == 0 or recv[-1][1] < 500:
+	raise Exception('Failed test')
    return bytesSent, startTime, recv
 
 def writeLog(agre):
@@ -179,14 +188,6 @@ def parseTshark(protocol, filename):
    return fetch
 
 if __name__ == "__main__":
-   p = HTTP2
-   clear_cache(p)
-   bytesSent, startTime, recv = measure_loadtime('nghttp2.org', p)
-   f = Fetch(p)
-   f.parseOutput(bytesSent, startTime, recv)
-   f.formString()
-   sys.exit()
-
    # set up command line args
    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
                      description='Using input URL file, test each url for HTTP2 features and performance')
@@ -211,28 +212,35 @@ if __name__ == "__main__":
 
    # Read input into local storage
    urls = set()
+   protocols = {}
    for line in args.infile:
       try:
-         url = line.strip().split(None, 1)[0]
+         url, ptcls = line.rstrip().split(None, 1)
+	 protocols[url] = ptcls
          urls.add(url)
       except Exception as e:
-         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
+         sys.stderr.write('Input error: (line=%s) %s\n' % (line.rstrip(), e))
    args.infile.close()
 
-   agre = {}
+   agre = defaultdict(list)
    for url in urls:
      # Time the webpage fetch with various protocols
-     for i in range(numtrials):
-        filename = measure_loadtime(url, HTTP2)
-        stats.fetches.append(parseTshark(HTTP2, filename))
+     for i in range(args.numtrials):
+	for p in PROTOCOLS.keys():
+	  if p not in protocols[url]:
+	    continue
+	  profile = PROTOCOLS[p]
+          try:
+            bytesSent, startTime, recv = measure_loadtime(url, profile)
+	  except Exception:
+            continue
+	  f = Fetch(p)
+	  f.parseOutput(bytesSent, startTime, recv)
 
-        filename = measure_loadtime(url, HTTP1)
-        stats.fetches.append(parseTshark(HTTP1, filename))
+	  args.outfile.write(url+' '+f.formString()+'\n')
 
-        filename = measure_loadtime(url, SPDY)
-        stats.fetches.append(parseTshark(SPDY, filename))
-	
-     args.outfile.write(writeStats(stats)+'\n')
+	  agre[url].append(f)
 
-   writeLog(agre, logfile)
+   if args.directory != None:
+     writeLog(agre, logfile)
 

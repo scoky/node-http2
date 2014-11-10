@@ -45,7 +45,7 @@ def writeLog(agre, logfile):
 
 def parseFetch(url, output, error):
    if error:
-      return 'UNKNOWN_ERROR'
+      return url+' UNKNOWN_ERROR'
    stats = Stats(url, output)
    stats.objects = 0
    stats.connections = 0
@@ -95,7 +95,7 @@ if __name__ == "__main__":
          url = line.strip().split(None, 1)[0]
          urls.add(url)
       except Exception as e:
-         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), args.directory))
+         sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), e))
    args.infile.close()
 
    pool = Pool(args.threads)
