@@ -13,8 +13,6 @@ import datetime
 import signal
 from collections import defaultdict
 
-TIMEOUT = 10
-
 STRACE = 'strace -fttte trace=sendto,connect,recvfrom -e signal=kill'
 FIREFOX = '/home/b.kyle/Downloads/firefox-36.0a1/firefox -P %s -no-remote --private-window "%s"'
 
@@ -85,7 +83,8 @@ def clear_cache(profile):
     sys.stderr.write('Error clearing cache: %s, %s\n' % (e, traceback.format_exc()))
 
 # Fetch the whole page using firefox for obtaining timing information
-def measure_loadtime(url, profile, timeout=15):
+def measure_loadtime(url, profile, timeout=10):
+   proc = None
    socks = set()
    pause = {}
    recv = []
@@ -100,7 +99,7 @@ def measure_loadtime(url, profile, timeout=15):
             if len(chunks) != 5:
                continue
             # _, process id, call time, system function, _
-            _, pid, time, cfunc, remainder = chunks
+            _, pid, ctime, cfunc, remainder = chunks
 
             # return from process interrupt
             if cfunc == '<...':
@@ -121,7 +120,7 @@ def measure_loadtime(url, profile, timeout=15):
             # TLS socket connect call
             if cfunc == 'connect' and 'htons(443)' in remainder:
                if not startTime:
-                  startTime = time
+                  startTime = ctime
                socks.add(fd)
             elif cfunc == 'sendto' and fd in socks:
                # Count bytes sent
@@ -135,7 +134,7 @@ def measure_loadtime(url, profile, timeout=15):
                   c = int(count)
                   if c > 0:
                      bytesRecv += c
-                     recv.append([time, bytesRecv])
+                     recv.append([ctime, bytesRecv])
                except ValueError:
                   pass
    except TimeoutError as e:
@@ -143,11 +142,16 @@ def measure_loadtime(url, profile, timeout=15):
       pass
    finally:
       try:
-         subprocess.check_output('killall firefox', shell=True)
+#	 if proc:
+#           proc.send_signal(2)
+#	   proc.wait()
+         subprocess.check_output('killall -s 2 firefox', shell=True)
       except Exception as e:
          sys.stderr.write('Error killing firefox: %s\n%s\n' % (e, traceback.format_exc()))      # Make sure tshark died
 
+   time.sleep(1)
    if bytesSent < 500 or len(recv) == 0 or recv[-1][1] < 500:
+	print bytesSent, len(recv), recv[-1][1]
 	raise Exception('Failed test')
    return bytesSent, startTime, recv
 
@@ -232,8 +236,9 @@ if __name__ == "__main__":
 	  profile = PROTOCOLS[p]
           try:
             bytesSent, startTime, recv = measure_loadtime(url, profile)
-	  except Exception:
-            continue
+	  except Exception as e:
+            sys.stderr.write('Error on measurement (url=%s) (profile=%s): %s\n' % (url, profile, e))
+	    continue
 	  f = Fetch(p)
 	  f.parseOutput(bytesSent, startTime, recv)
 
