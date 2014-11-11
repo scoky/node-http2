@@ -66,7 +66,7 @@ def parseOutput(url, output, error):
 	return url+' NO_H2_NEGO'
    # Redirected
    if redirect:
-	return url+' REDIRECT_TO_H1'
+	return url+' REDIRECT_TO_HTTP'
    # Received a 4xx response
    if notfound:
 	return url+' 4XX_CODE'
