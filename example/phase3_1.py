@@ -22,10 +22,11 @@ class Stats(object):
    def __init__(self, url, output):
       self.url = url
       self.output = output
-      self.objects = self.connections = self.pushes = None
+      self.objects = self.connections = self.pushes = self.size = self.time = None
 
    def formString(self):
-      return self.url+" objs="+str(self.objects)+" conns="+str(self.connections)+" pushes="+str(self.pushes)
+      return self.url+" objs="+str(self.objects)+" conns="+str(self.connections)+\
+	" pushes="+str(self.pushes)+" size="+str(self.size)+" time="+str(self.time)
 
 # Fetch the whole page using node js for obtaining statistics
 def handle_url(url):
@@ -50,6 +51,8 @@ def parseFetch(url, output, error):
    stats.objects = 0
    stats.connections = 0
    stats.pushes = 0
+   stats.size = 0
+   stats.time = 0
 
    for line in output.split('\n'):
 	chunks = line.split()
@@ -61,6 +64,10 @@ def parseFetch(url, output, error):
 	   stats.pushes += 1
         elif chunks[1].startswith('REQUEST='):
 	   stats.objects += 1
+	   stats.time = float(chunks[0].strip('[s]'))
+        elif chunks[1].startswith('RESPONSE='):
+	   stats.size += int(chunks[2].split('=')[1])
+	   stats.time = float(chunks[0].strip('[s]'))
 
    return stats.formString()
 
