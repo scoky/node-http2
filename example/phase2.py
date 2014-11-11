@@ -64,15 +64,15 @@ def parseOutput(url, output, error):
    # Could not negotiate h2 via NPN/ALPN
    if not nego:
 	return url+' NO_H2_NEGO'
-   # Redirected
-   if redirect:
-	return url+' REDIRECT_TO_HTTP'
    # Received a 4xx response
    if notfound:
 	return url+' 4XX_CODE'
    # Received a 5xx response
    if serverError:
 	return url+' 5XX_CODE'
+   # Redirected
+   if redirect:
+	return url+' REDIRECT_TO_HTTP'
    # No response, protocol error
    return url+' PROTOCOL_ERROR'
    
