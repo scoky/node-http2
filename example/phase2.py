@@ -18,7 +18,7 @@ TIMEOUT = 10
 def handle_url(url):
    sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
    try:
-      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT)]#, '-o', '/dev/null'] Null content
+      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null'] #Null content
       sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
