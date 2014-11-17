@@ -62,7 +62,7 @@ def parseFetch(url, output, error):
 	   stats.connections += 1
         elif chunks[1].startswith('PUSH='):
 	   stats.pushes += 1
-        elif chunks[1].startswith('REQUEST='):
+        elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
 	   stats.objects += 1
 	   stats.time = float(chunks[0].strip('[s]'))
         elif chunks[1].startswith('RESPONSE='):
