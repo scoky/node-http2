@@ -67,6 +67,12 @@ browser.on('response', function(req, res) {
     console.log(getTimeString()+' RESPONSE='+res.url+' SIZE='+Buffer(res.body).length)
     console.log(getTimeString()+' CODE='+res.statusCode)
     console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
+    if (res.headers['content-type'] && (res.headers['content-type'].indexOf('text') !== -1 ||
+      res.headers['content-type'].indexOf('html') !== -1)) {
+      console.log(getTimeString()+' CONTENT=...')
+      console.log(res.body.toString())
+      console.log('...=CONTENT')
+    }
   }
 })
 

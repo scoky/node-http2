@@ -26,10 +26,6 @@ def handle_url(url):
       sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
       return url, traceback.format_exc(), True
 
-def writeLog(agre, logfile):
-   with gzip.open(logfile, 'wb') as logf:
-      cPickle.dump(agre, logf)
-
 def parseOutput(url, output, error):
    if error:
 	return url+' UNKNOWN_ERROR'
@@ -95,8 +91,10 @@ if __name__ == "__main__":
             sys.stderr.write('Error making output directory: %s\n' % args.directory)
             sys.exit(-1)
    logfile = None
+   log = None
    if args.directory != None:
    	logfile = os.path.join(args.directory, 'log-'+datetime.date.today().isoformat()+'.pickle.gz')
+	log = gzip.open(logfile, 'wb')
 
    sys.stderr.write('Command process (pid=%s)\n' % os.getpid())
 
@@ -113,17 +111,16 @@ if __name__ == "__main__":
    args.infile.close()
 
    pool = Pool(args.threads)
-   agre = {}
    try:
      results = pool.imap(handle_url, urls, args.chunk)
      for result in results:
 	url, output, error = result
-	if args.directory != None:
-	   agre[url] = output
+	if log:
+	   cPickle.dump([url, output], log)
 	
         args.outfile.write(parseOutput(url, output, error)+' '+protocols[url]+'\n')
    except KeyboardInterrupt:
      pool.terminate()
-     sys.exit()
-   if args.directory != None:
-     writeLog(agre, logfile)
+
+   if log:
+     log.close()
