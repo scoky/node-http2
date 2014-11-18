@@ -26,7 +26,8 @@ class Stats(object):
 
    def formString(self):
       return self.url+" objs="+str(self.objects)+" conns="+str(self.connections)+\
-	" pushes="+str(self.pushes)+" size="+str(self.size)+" time="+str(self.time)
+	" pushes="+str(self.pushes)+" size="+str(self.size)+" time="+str(self.time)+\
+	" partial="+str(self.partial)
 
 # Fetch the whole page using node js for obtaining statistics
 def handle_url(url):
@@ -53,6 +54,7 @@ def parseFetch(url, output, error):
    stats.pushes = 0
    stats.size = 0
    stats.time = 0
+   stats.partial = False
 
    for line in output.split('\n'):
 	chunks = line.split()
@@ -68,6 +70,8 @@ def parseFetch(url, output, error):
         elif chunks[1].startswith('RESPONSE='):
 	   stats.size += int(chunks[2].split('=')[1])
 	   stats.time = float(chunks[0].strip('[s]'))
+	elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
+	   stats.partial = True
 
    return stats.formString()
 
