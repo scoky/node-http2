@@ -9,12 +9,12 @@ var CS = require('coffee-script')
 CS.register()
 var Browser = require("../../zombie/src/zombie")
 
-var protocols = ['h1', 'h2', 'spdy']
+var protocols = ['h2', 'http/1.1', 'spdy']
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
   console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-r <'+protocols.toString()+'>] [-v] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
-  console.log('-r indicate a protocol to use, h2 by default')
+  console.log('-r indicate a protocol to use, (default '+protocols[0]+')')
   console.log('-t timeout in seconds')
   console.log('-v verbose output')
   console.log('-h print this help menu')
@@ -28,7 +28,7 @@ if (argv.p) {
 }
 
 if (!argv.r || protocols.indexOf(argv.r) === -1) {
-  argv.r = 'h2'
+  argv.r = protocols[0]
 }
 browser.setProtocol(argv.r)
 
