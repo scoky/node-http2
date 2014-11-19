@@ -103,6 +103,9 @@ browser.on('push', function(pushReq) {
   if (argv.v) {
     console.log(getTimeString()+' PUSH='+pushReq.url)
   }
+  pushReq.on('error', function(err) {
+    console.log(err)
+  })
   pushReq.cancel()
 })
 

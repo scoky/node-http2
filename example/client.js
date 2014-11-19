@@ -126,6 +126,9 @@ function run(url) {
     if (argv.v) {
       console.log(getTimeString()+' PUSH='+pushRequest.url)
     }
+    pushRequest.on('error', function(err) {
+      console.log(err)
+    })
     pushRequest.cancel()
   })
 }
