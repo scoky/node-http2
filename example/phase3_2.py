@@ -199,7 +199,6 @@ if __name__ == "__main__":
    parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
    parser.add_argument('-d', '--directory', default=None, help='Directory for writing log')
    parser.add_argument('-n', '--numtrials', default=5, type=int, help='number of trials per URL')
-   parser.add_argument('-c', '--chunk', default=20, help='chunk size to assign to each thread')
    args = parser.parse_args()
 
    if args.directory != None and not os.path.isdir(args.directory):
