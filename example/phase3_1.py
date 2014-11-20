@@ -33,10 +33,10 @@ class Stats(object):
 
 # Fetch the whole page using node js for obtaining statistics
 def handle_url(url, ptcl):
-   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
+#   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
    try:
       cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-r', ptcl]#, '-o', '/dev/null'] Null content
-      sys.stderr.write('Running cmd: %s\n' % cmd)
+#      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
    except Exception as e:
