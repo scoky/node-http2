@@ -12,6 +12,7 @@ import subprocess
 import datetime
 import cPickle
 from multiprocessing import Pool
+from urlparse import urlparse
 
 ENV = '/usr/bin/env'
 NODE = '/home/bkyle/node-v0.10.33/out/Release/node'
@@ -24,10 +25,10 @@ class Stats(object):
    def __init__(self, url, output):
       self.url = url
       self.output = output
-      self.objects = self.connections = self.pushes = self.size = self.time = None
+      self.domains = self.objects = self.connections = self.pushes = self.size = self.time = None
 
    def formString(self):
-      return "objs="+str(self.objects)+" conns="+str(self.connections)+\
+      return "objs="+str(self.objects)+" conns="+str(self.connections)+" domains="+str(self.domains)+\
 	" pushes="+str(self.pushes)+" size="+str(self.size)+" time="+str(self.time)+\
 	" partial="+str(self.partial)
 
@@ -46,6 +47,7 @@ def handle_url(url, ptcl):
 def parseFetch(url, output, error):
    if error:
       return 'ERROR'
+   domains = set()
    stats = Stats(url, output)
    stats.objects = 0
    stats.connections = 0
@@ -65,12 +67,15 @@ def parseFetch(url, output, error):
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
 	   stats.objects += 1
 	   stats.time = float(chunks[0].strip('[s]'))
+           domain = urlparse(chunks[1].split('=')[1]).netloc
+           domains.add(domain)
         elif chunks[1].startswith('RESPONSE='):
 	   stats.size += int(chunks[2].split('=')[1])
 	   stats.time = float(chunks[0].strip('[s]'))
 	elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
 	   stats.partial = True
 
+   stats.domains = len(domains)
    return stats.formString()
 
 if __name__ == "__main__":
