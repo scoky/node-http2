@@ -5,30 +5,40 @@ var path = require('path')
 var http2 = require('..')
 var url = require('url')
 
-var options = process.env.HTTP2_PLAIN ? {
+// Parse argv
+var argv = require('minimist')(process.argv.slice(2))
+if (argv.h || argv._.length != 2) {
+  console.log('USAGE: node server.js <bind> <cache directory> [-p] [-k] [-v] [-h]')
+  console.log('-p use plaintext with client')
+  console.log('-v verbose output')
+  console.log('-k ignore certificate errors')
+  console.log('-h print this help menu')
+  process.exit()
+}
+
+if (argv.k) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+}
+
+var options = argv.p ? {
   plain: true
 } : {
   key: fs.readFileSync(path.join(__dirname, '/localhost.key')),
   cert: fs.readFileSync(path.join(__dirname, '/localhost.crt'))
 };
-
 // Passing bunyan logger (optional)
 options.log = require('../test/util').createLogger('server')
 
-var argv = require('minimist')(process.argv.slice(2))
-if (argv.h || argv._.length != 1) {
-  console.log('USAGE: node server.js <cache directory> [-h]')
-  console.log('-h print this help menu')
-  process.exit()
-}
-var directory = argv._[0]
+var bind = argv._[0]
+var directory = argv._[1]
 
 var request_count = 0
 
-// Creating the server
-var server = http2.createServer(options, function(request, response) {
+function onRequest(request, response) {
   var req_no = request_count++
-  console.log((new Date()).toISOString()+" Request #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
+  if (argv.v) {
+    console.log((new Date()).toISOString()+" Request #"+req_no+"# "+request.url+" "+JSON.stringify(request.headers))
+  }
 
   var hostname = request.headers[':authority'] || request.headers['host']
   var dir = path.join(directory, hostname)
@@ -78,6 +88,15 @@ var server = http2.createServer(options, function(request, response) {
     response.writeHead(404)
     response.end()
   }*/
-})
+}
 
-server.listen(process.env.HTTP2_PORT || 5678);
+// Creating the server
+if (argv.p) {
+  server = http2.raw.createServer(options, onRequest);
+} else {
+  server = http2.createServer(options, onRequest);
+}
+
+ip = bind.split(':')[0]
+port = bind.split(':')[1]
+server.listen(port, ip)
