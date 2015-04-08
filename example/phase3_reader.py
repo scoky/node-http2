@@ -14,23 +14,25 @@ from collections import namedtuple,defaultdict
 
 PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
 
-Fetch = namedtuple('Fetch', 'request_time new_connection push size')
+Fetch = namedtuple('Fetch', 'request_time new_connection push size order')
 
-def parseH1(murl, output):
+def parseH1(key, murl, output):
     objs = {}
     conns = defaultdict(int)
+    count = 0
     last = None
     for line in output.split('\n'):
+        count += 1
         chunks = line.split()
         if len(chunks) < 2:
             continue
 
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size)
+            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order)
         elif chunks[1].startswith('PUSH='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None)
+            objs[url] = Fetch(time, False, True, None, count)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = chunks[1].split('=')[1].rstrip('/')
@@ -42,7 +44,7 @@ def parseH1(murl, output):
                 conns[domain] -= 1
 
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, new_conn, False, None)
+            objs[url] = Fetch(time, new_conn, False, None, count)
             last = url
         elif chunks[1].startswith('RESPONSE='):
             url = chunks[1].split('=')[1].rstrip('/')
@@ -51,45 +53,47 @@ def parseH1(murl, output):
 
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size)
+            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order)
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
             break
 
-    for url,f in objs.iteritems():
+    for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
         if f.size:
-            args.outfile.write(murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + '\n')
+            args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + '\n')
 
 
-def parseOther(murl, output, protocol):
+def parseOther(key, murl, output, protocol):
     objs = {}
     last = None
+    count = 0
     for line in output.split('\n'):
         chunks = line.split()
+        count += 1
         if len(chunks) < 2:
             continue
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size)
+            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order)
         elif chunks[1].startswith('PUSH='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None)
+            objs[url] = Fetch(time, False, True, None, count)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, False, None)
+            objs[url] = Fetch(time, False, False, None, count)
             last = url
         elif chunks[1].startswith('RESPONSE='):
             url = chunks[1].split('=')[1].rstrip('/')
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size)
+            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order)
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
             break
 
-    for url,f in objs.iteritems():
+    for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
         if f.size:
-            args.outfile.write(murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + '\n')
+            args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + '\n')
 
 if __name__ == "__main__":
     # set up command line args
@@ -100,6 +104,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     obj = None
+    count = 0
     while True:
         try:
             obj = cPickle.load(args.infile)
@@ -107,7 +112,8 @@ if __name__ == "__main__":
             break
         url, output, protocol = obj
         if protocol == 'http/1.1':
-            parseH1(url, output)
+            parseH1('fetch'+str(count), url, output)
         else:
-            parseOther(url, output, protocol)
+            parseOther('fetch'+str(count), url, output, protocol)
+        count += 1
 
