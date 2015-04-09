@@ -13,6 +13,7 @@ import datetime
 import cPickle
 from multiprocessing import Pool
 from urlparse import urlparse
+from collections import defaultdict
 
 ENV = '/usr/bin/env'
 NODE = '/home/bkyle/node-v0.10.33/out/Release/node'
@@ -45,38 +46,51 @@ def handle_url(url, ptcl):
       return url, traceback.format_exc(), True
 
 def parseFetch(url, output, error):
-   if error:
-      return 'ERROR'
-   domains = set()
-   stats = Stats(url, output)
-   stats.objects = 0
-   stats.connections = 0
-   stats.pushes = 0
-   stats.size = 0
-   stats.time = 0
-   stats.partial = False
+    if error:
+        return 'ERROR'
+    domains = set()
+    stats = Stats(url, output)
+    stats.objects = 0
+    stats.connections = 0
+    stats.pushes = 0
+    stats.size = 0
+    stats.time = 0
+    stats.partial = False
+    
+    h1conns = 0
+    conns = defaultdict(int)
 
-   for line in output.split('\n'):
-	chunks = line.split()
-	if len(chunks) < 2:
-		continue
-	if chunks[1].startswith('TCP_CONNECTION='):
-	   stats.connections += 1
+    for line in output.split('\n'):
+        chunks = line.split()
+        if len(chunks) < 2:
+            continue
+        if chunks[1].startswith('TCP_CONNECTION='):
+            stats.connections += 1
         elif chunks[1].startswith('PUSH='):
-	   stats.pushes += 1
+            stats.pushes += 1
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
-	   stats.objects += 1
-	   stats.time = float(chunks[0].strip('[s]'))
-           domain = urlparse(chunks[1].split('=')[1]).netloc
-           domains.add(domain)
-        elif chunks[1].startswith('RESPONSE='):
-	   stats.size += int(chunks[2].split('=')[1])
-	   stats.time = float(chunks[0].strip('[s]'))
-	elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
-	   stats.partial = True
+            stats.objects += 1
+            stats.time = float(chunks[0].strip('[s]'))
+            domain = urlparse(chunks[1].split('=')[1]).netloc
+            domains.add(domain)
 
-   stats.domains = len(domains)
-   return stats.formString()
+            if conns[domain] == 0:
+                h1conns += 1
+            else:
+                conns[domain] -= 1
+        elif chunks[1].startswith('RESPONSE='):
+            stats.size += int(chunks[2].split('=')[1])
+            stats.time = float(chunks[0].strip('[s]'))
+
+            domain = urlparse(chunks[1].split('=')[1]).netloc
+            conns[domain] += 1
+        elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
+            stats.partial = True
+
+    stats.domains = len(domains)
+    if stats.connections == 0 and h1conns > 0:
+        stats.connections = h1conns
+    return stats.formString()
 
 if __name__ == "__main__":
    # set up command line args
