@@ -14,7 +14,7 @@ from collections import namedtuple,defaultdict
 
 PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
 
-Fetch = namedtuple('Fetch', 'request_time new_connection push size order prior')
+Fetch = namedtuple('Fetch', 'request_time new_connection push size order prior code')
 
 def parseH1(key, murl, output):
     objs = {}
@@ -29,11 +29,11 @@ def parseH1(key, murl, output):
             continue
 
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior)
+            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None, count, resp)
+            objs[url] = Fetch(time, False, True, None, count, resp, None)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = chunks[1].split('=')[1].rstrip('/')
@@ -45,7 +45,7 @@ def parseH1(key, murl, output):
                 conns[domain] -= 1
 
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, new_conn, False, None, count, resp)
+            objs[url] = Fetch(time, new_conn, False, None, count, resp, None)
             last = url
         elif chunks[1].startswith('RESPONSE='):
             url = chunks[1].split('=')[1].rstrip('/')
@@ -54,14 +54,15 @@ def parseH1(key, murl, output):
 
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior)
+            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior, '200')
             resp = url
-        elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
-            break
+        elif chunks[1].startswith('CODE='):
+            code = chunks[1].split('=')[1]
+            objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
     for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
         if f.size:
-            args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + '\n')
+            args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
 
 
 def parseOther(key, murl, output, protocol):
@@ -75,29 +76,35 @@ def parseOther(key, murl, output, protocol):
         if len(chunks) < 2:
             continue
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior)
+            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None, count, resp)
+            objs[url] = Fetch(time, False, True, None, count, resp, None)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = chunks[1].split('=')[1].rstrip('/')
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, False, None, count, resp)
+            objs[url] = Fetch(time, False, False, None, count, resp, None)
             last = url
         elif chunks[1].startswith('RESPONSE='):
             url = chunks[1].split('=')[1].rstrip('/')
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior)
+            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior, 200)
             resp = url
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
-            break
+            protocol_fail = True
+        elif chunks[1].startswith('CODE='):
+            code = chunks[1].split('=')[1]
+            objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
     for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
+        code = f.code
+        if not code and protocol_fail:
+            code = 'PROTOCOL_NEGOTIATE_FAILED'
         if f.size:
-            args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + '\n')
+            args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
 
 if __name__ == "__main__":
     # set up command line args
