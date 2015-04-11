@@ -119,7 +119,7 @@ browser.on('protocolNegotiated', function(protocol) {
   if (argv.v) {
     console.log(getTimeString()+' PROTOCOL='+protocol)
   }
-  if (protocol === undefined || protocol.indexOf('h2') !== 0) {
+  if (!protocol || protocol.indexOf('h2') !== 0) {
     console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED')
 //    process.exit(2)
   }

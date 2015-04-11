@@ -105,7 +105,7 @@ def parseOther(key, murl, output, protocol):
 
     for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
         code = f.code
-        if not code and url.startswith('http:'):
+        if not code and (url.startswith('http:') or protocol_fail):
             code = 'not_supported'
         if f.size:
             args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
