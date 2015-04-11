@@ -69,6 +69,7 @@ def parseOther(key, murl, output, protocol):
     objs = {}
     last = None
     resp = None
+    protocol_fail = False
     count = 0
     for line in output.split('\n'):
         chunks = line.split()
