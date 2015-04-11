@@ -61,8 +61,7 @@ def parseH1(key, murl, output):
             objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
     for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
-        if f.size:
-            args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
+        args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
 
 
 def getURL(uri):
@@ -107,8 +106,7 @@ def parseOther(key, murl, output, protocol):
         code = f.code
         if not code and (url.startswith('http:') or protocol_fail):
             code = 'not_supported'
-        if f.size:
-            args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + f.size + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
+        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
 
 if __name__ == "__main__":
     # set up command line args
