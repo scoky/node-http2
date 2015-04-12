@@ -38,7 +38,7 @@ def getLoadTime(tree, root):
     else:
         return 0
         
-getByUrl(data, url):
+def getByUrl(data, url):
     for f in data:
         if f.url == url:
             return f
@@ -65,6 +65,7 @@ def parseData(data):
     conns = {'h2':0, 'http/1.1':0, 'spdy':0}
     size = {'h2':0, 'http/1.1':0, 'spdy':0}
     domains = set()
+    push = 0
 
     tree = getTree(data, data[0])
     # Time depends upon the critical path
@@ -72,7 +73,7 @@ def parseData(data):
 
     # None of the other metrics do
     for f in data:
-        if f.code != 'None' and root.code != 'not_supported':
+        if f.code != 'None' and f.code != 'not_supported':
             objects[f.protocol] += 1
             size[f.protocol] += int(f.size)
             if f.new_connection:
@@ -81,10 +82,10 @@ def parseData(data):
                 push += 1
             domains.add(urlparse(f.url).netloc)
             
-    return time, objects, conns, size, len(domains)
+    return time, objects, conns, size, len(domains), push
     
 def output(url, protocol, data):
-    time, objects, conns, size, domains = data
+    time, objects, conns, size, domains, push = data
     args.outfile.write( (url + ' ' + protocol + ' objs_h2=' + str(objects['h2']) + ' objs_spdy=' + str(objects['spdy']) +
         ' objs_h1=' + str(objects['http/1.1']) + ' conns_h2=' + str(conns['h2']) + ' conns_spdy=' + str(conns['spdy']) +
         ' conns_h1=' + str(conns['http/1.1']) + ' domains=' + str(domains) + ' size_h2=' + str(size['h2']) + ' size_spdy=' + 
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
     args = parser.parse_args()
 
-    data = {'h2':defaultdict({}), 'http/1.1':defaultdict({}), 'spdy':defaultdict({})}
+    data = {'h2':defaultdict(dict), 'http/1.1':defaultdict(dict), 'spdy':defaultdict(dict)}
     for line in args.infile:
         chunks = line.rstrip().split()
         f = Fetch(chunks[0], chunks[1], chunks[2], chunks[3], bool(chunks[4]), bool(chunks[5]), chunks[6], float(chunks[7]), chunks[8], chunks[9])
@@ -108,8 +109,8 @@ if __name__ == "__main__":
         
     for page,p in data['http/1.1'].iteritems():
         for k in p.itervalues():
-            data = parserData(k)
-            output(page, 'http/1.1', data)
+            d = parseData(k)
+            output(page, 'http/1.1', d)
             
     for page,p in data['spdy'].iteritems():
         for k in p.itervalues():
@@ -119,8 +120,8 @@ if __name__ == "__main__":
                 additional += a
                 for r in replaced:
                     k.remove(r)
-            data = parseData(k + additional)
-            output(page, 'spdy', data)
+            d = parseData(k + additional)
+            output(page, 'spdy', d)
 
     for page,p in data['h2'].iteritems():
         for k in p.itervalues():
@@ -135,7 +136,7 @@ if __name__ == "__main__":
                 additional += a
                 for r in replaced:
                     k.remove(r)
-            data = parseData(k + additional)
-            output(page, 'h2', data)
+            d = parseData(k + additional)
+            output(page, 'h2', d)
 
     
