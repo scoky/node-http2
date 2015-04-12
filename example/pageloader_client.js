@@ -126,7 +126,7 @@ browser.on('protocolNegotiated', function(protocol) {
 })
 
 browser.visit(argv._[0], function () {
-  browser.assert.success()
+//  browser.assert.success()
 //  Poorly structure output. We can do better
 //  browser.resources.dump()
 
