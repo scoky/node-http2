@@ -81,17 +81,17 @@ def parseOther(key, murl, output, protocol):
         if chunks[1].startswith('TCP_CONNECTION='):
             objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
             objs[url] = Fetch(time, False, True, None, count, resp, None)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
             objs[url] = Fetch(time, False, False, None, count, resp, None)
             last = url
         elif chunks[1].startswith('RESPONSE='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
             objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior, 200)
@@ -99,7 +99,7 @@ def parseOther(key, murl, output, protocol):
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
             protocol_fail = True
         elif chunks[1].startswith('CODE='):
-            code = chunks[1].split('=')[1]
+            code = chunks[1].split('=', 1)[1]
             objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
     for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
