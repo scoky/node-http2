@@ -48,9 +48,9 @@ def fillIn(data, filler):
     additional = []
     replaced = []
     for f in list(data):
-        if f.code == 'not_supported':
+        if f.code == 'not_supported' or f.code == 'None':
             i = getByUrl(filler, f.url)
-            if i and i.code != 'not_supported':
+            if i and i.code != 'not_supported' and i.code != 'None':
                 subtree = flattenTree(getTree(filler, i))
                 additional.append(i)
                 replaced.append(f)
