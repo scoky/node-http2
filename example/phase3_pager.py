@@ -46,10 +46,10 @@ def getByUrl(data, url):
 
 def getMedian(datas):
     group = defaultdict(list)
+    ret = []
     for data in datas:
         for f in data:
-            ret[f.url].append(f)
-    ret = []
+            group[f.url].append(f)
     for g in group.itervalues():
         sg = sorted(g, key = lambda x: x.request_time)
         median = sg[len(sg)/2]
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     for page,p in data['http/1.1'].iteritems():
         result = getMedian(p.itervalues())
         p.clear()
-        p = { 'median': result }
+        p['median'] = result
         d = parseData(result)
         output(page, 'http/1.1', d)
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
             for r in replaced:
                 result.remove(r)
         p.clear()
-        p = { 'median': result }
+        p['median'] = result
         d = parseData(result + additional)
         output(page, 'spdy', d)
 
