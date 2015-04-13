@@ -92,7 +92,8 @@ def parseData(data):
         if f.code != 'None' and f.code != 'not_supported':
             objects[f.protocol] += 1
             size[f.protocol] += int(f.size)
-            if f.new_connection:
+            # New connection if this request uses a different protocol
+            if f.new_connection or f.protocol != data[0].protocol:
                 conns[f.protocol] += 1
             if f.push:
                 push += 1
