@@ -44,6 +44,22 @@ def getByUrl(data, url):
             return f
     return None
 
+def getMedian(datas):
+    group = defaultdict(list)
+    for data in datas:
+        for f in data:
+            ret[f.url].append(f)
+    ret = []
+    for g in group.itervalues():
+        sg = sorted(g, key = lambda x: x.request_time)
+        median = sg[len(sg)/2]
+        if median.prior == 'None': # Make sure the root object remains first
+            ret.insert(0, median)
+        else:
+            ret.append(median)
+    return ret
+        
+
 def fillIn(data, filler):
     additional = []
     replaced = []
@@ -108,35 +124,39 @@ if __name__ == "__main__":
         data[f.protocol][f.page][f.key].append(f)
 
     for page,p in data['http/1.1'].iteritems():
-        for k in p.itervalues():
-            d = parseData(k)
-            output(page, 'http/1.1', d)
+        result = getMedian(p.itervalues())
+        p.clear()
+        p = { 'median': result }
+        d = parseData(result)
+        output(page, 'http/1.1', d)
 
     for page,p in data['spdy'].iteritems():
-        for k in p.itervalues():
-            additional = []
-            if page in data['http/1.1']:
-                a, replaced = fillIn(k, data['http/1.1'][page].values()[0])
-                additional += a
-                for r in replaced:
-                    k.remove(r)
-            d = parseData(k + additional)
-            output(page, 'spdy', d)
+        result = getMedian(p.itervalues())
+        additional = []
+        if page in data['http/1.1']:
+            a, replaced = fillIn(result, data['http/1.1'][page]['median'])
+            additional += a
+            for r in replaced:
+                result.remove(r)
+        p.clear()
+        p = { 'median': result }
+        d = parseData(result + additional)
+        output(page, 'spdy', d)
 
     for page,p in data['h2'].iteritems():
-        for k in p.itervalues():
-            additional = []
-            if page in data['spdy']:
-                a, replaced = fillIn(k, data['spdy'][page].values()[0])
-                additional += a
-                for r in replaced:
-                    k.remove(r)
-            if page in data['http/1.1']:
-                a, replaced = fillIn(k, data['http/1.1'][page].values()[0])
-                additional += a
-                for r in replaced:
-                    k.remove(r)
-            d = parseData(k + additional)
-            output(page, 'h2', d)
+        result = getMedian(p.itervalues())
+        additional = []
+        if page in data['spdy']:
+            a, replaced = fillIn(result, data['spdy'][page]['median'])
+            additional += a
+            for r in replaced:
+                result.remove(r)
+        if page in data['http/1.1']:
+            a, replaced = fillIn(result, data['http/1.1'][page]['median'])
+            additional += a
+            for r in replaced:
+                result.remove(r)
+        d = parseData(result + additional)
+        output(page, 'h2', d)
 
     
