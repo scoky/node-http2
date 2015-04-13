@@ -66,7 +66,7 @@ def fillIn(data, filler):
     for f in list(data):
         if f.code == 'not_supported' or f.code == 'None':
             i = getByUrl(filler, f.url)
-            if i and i.code != 'not_supported' and i.code != 'None' and i.new_connection:
+            if i and i.code != 'not_supported' and i.code != 'None':
                 subtree = flattenTree(getTree(filler, i))
                 additional.append(i)
                 replaced.append(f)
