@@ -21,14 +21,14 @@ def getTree(data, root):
         if f.prior == root.url:
             children.append((f, getTree(data, f)))
     return children
-    
+
 def flattenTree(tree):
     data = []
     for f,children in tree:
         data.append(f)
         data += flattenTree(children)
     return data
-    
+
 def getLoadTime(tree, root):
     if root.code != 'None' and root.code != 'not_supported':
         time = 0
@@ -37,7 +37,7 @@ def getLoadTime(tree, root):
         return time + root.request_time
     else:
         return 0
-        
+
 def getByUrl(data, url):
     for f in data:
         if f.url == url:
@@ -81,9 +81,9 @@ def parseData(data):
             if f.push:
                 push += 1
             domains.add(urlparse(f.url).netloc)
-            
+
     return time, objects, conns, size, len(domains), push
-    
+
 def output(url, protocol, data):
     time, objects, conns, size, domains, push = data
     args.outfile.write( (url + ' ' + protocol + ' objs_h2=' + str(objects['h2']) + ' objs_spdy=' + str(objects['spdy']) +
@@ -106,12 +106,12 @@ if __name__ == "__main__":
         if f.key not in data[f.protocol][f.page]:
             data[f.protocol][f.page][f.key] = []
         data[f.protocol][f.page][f.key].append(f)
-        
+
     for page,p in data['http/1.1'].iteritems():
         for k in p.itervalues():
             d = parseData(k)
             output(page, 'http/1.1', d)
-            
+
     for page,p in data['spdy'].iteritems():
         for k in p.itervalues():
             additional = []
