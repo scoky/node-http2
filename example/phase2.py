@@ -18,7 +18,7 @@ TIMEOUT = 10
 def handle_url(url):
 #   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
    try:
-      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null'] #Null content
+      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', args.protocol] #Null content
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
@@ -27,50 +27,50 @@ def handle_url(url):
       return url, traceback.format_exc(), True
 
 def parseOutput(url, output, error):
-   if error:
-	return url+' UNKNOWN_ERROR'
+    if error:
+        return url+' UNKNOWN_ERROR'
 
-   estab = nego = cnego = response = redirect = notfound = serverError = False
-   for line in output.split('\n'):
-	chunks = line.split()
-	if len(chunks) < 2:
-		continue
-	if chunks[1].startswith('TCP_CONNECTION'):
-	   estab = True
+    estab = nego = cnego = response = redirect = notfound = serverError = False
+    for line in output.split('\n'):
+        chunks = line.split()
+        if len(chunks) < 2:
+            continue
+        if chunks[1].startswith('TCP_CONNECTION'):
+            estab = True
         elif chunks[1].startswith('PROTOCOL=h2'):
-	   nego = True
-	   cnego = True
-	elif chunks[1].startswith('PROTOCOL='):
-	   cnego = False
+            nego = True
+            cnego = True
+        elif chunks[1].startswith('PROTOCOL='):
+            cnego = False
         elif chunks[1].startswith('CODE=2') and cnego:
-	   response = True
+            response = True
         elif chunks[1].startswith('CODE=3') and cnego:
-	   redirect = True
-	elif chunks[1].startswith('CODE=4') and cnego:
-	   notfound = True
-	elif chunks[1].startswith('CODE=5') and cnego:
-	   serverError = True
+            redirect = True
+        elif chunks[1].startswith('CODE=4') and cnego:
+            notfound = True
+        elif chunks[1].startswith('CODE=5') and cnego:
+            serverError = True
 
-   # Received a 2xx response
-   if response:
+    # Received a 2xx response
+    if response:
         return url+' H2_SUPPORT'
-   # Could not connection
-   if not estab:
-	return url+' NO_TCP_HANDSHAKE'
-   # Could not negotiate h2 via NPN/ALPN
-   if not nego:
-	return url+' NO_H2_NEGO'
-   # Received a 4xx response
-   if notfound:
-	return url+' 4XX_CODE'
-   # Received a 5xx response
-   if serverError:
-	return url+' 5XX_CODE'
-   # Redirected
-   if redirect:
-	return url+' REDIRECT_TO_HTTP'
-   # No response, protocol error
-   return url+' PROTOCOL_ERROR'
+    # Could not connection
+    if not estab:
+        return url+' NO_TCP_HANDSHAKE'
+    # Could not negotiate h2 via NPN/ALPN
+    if not nego:
+        return url+' NO_H2_NEGO'
+    # Received a 4xx response
+    if notfound:
+        return url+' 4XX_CODE'
+    # Received a 5xx response
+    if serverError:
+        return url+' 5XX_CODE'
+    # Redirected
+    if redirect:
+        return url+' REDIRECT_TO_HTTP'
+    # No response, protocol error
+    return url+' PROTOCOL_ERROR'
    
 
 if __name__ == "__main__":
@@ -82,6 +82,7 @@ if __name__ == "__main__":
    parser.add_argument('-d', '--directory', default=None, help='Directory for writing log')
    parser.add_argument('-t', '--threads', default=None, type=int, help='number of threads to use')
    parser.add_argument('-c', '--chunk', default=20, help='chunk size to assign to each thread')
+   parser.add_argument('-r', '--protocol', default='h2', choices=['h2', 'spdy'], help='which protocol to use when loading the object')
    args = parser.parse_args()
 
    if args.directory != None and not os.path.isdir(args.directory):
