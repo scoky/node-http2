@@ -114,18 +114,18 @@ browser.on('push', function(pushReq) {
   pushReq.cancel()
 })
 
-browser.on('newConnection', function(endpoint) {
+browser.on('newConnection', function(endpoint, hostname, port) {
   if (argv.v) {
-    console.log(getTimeString()+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t'))
+    console.log(getTimeString()+' TCP_CONNECTION='+JSON.stringify(endpoint, null, '\t')+' ENDPOINT='+hostname+':'+port)
   }
 })
 
-browser.on('protocolNegotiated', function(protocol) {
+browser.on('protocolNegotiated', function(protocol, hostname, port) {
   if (argv.v) {
     console.log(getTimeString()+' PROTOCOL='+protocol)
   }
   if (!protocol || protocol.indexOf('h2') !== 0) {
-    console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED')
+    console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED ENDPOINT='+hostname+':'+port)
 //    process.exit(2)
   }
 })
