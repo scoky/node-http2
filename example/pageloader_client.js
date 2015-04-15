@@ -5,6 +5,11 @@ http2.globalAgent = new http2.Agent({
   log: require('../test/util').createLogger('client')
 });
 
+process.on('uncaughtException', function(err) {
+  console.log(getTimeString()+' ERROR='+err);
+  // Typically, this is a protocol error
+});
+
 var CS = require('coffee-script')
 CS.register()
 var Browser = require("../../zombie/src/zombie")

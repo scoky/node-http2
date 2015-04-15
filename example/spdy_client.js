@@ -2,24 +2,20 @@
 
 var fs = require('fs')
 var path = require('path')
-var http2 = require('..')
 var spdy = require('spdy')
+var http = require('http')
+var https = require('https')
 
 process.on('uncaughtException', function(err) {
   console.log(getTimeString()+' ERROR='+err);
   // Typically, this is a protocol error
 });
 
-// Logging
-http2.globalAgent = new http2.Agent({
-  log: require('../test/util').createLogger('client')
-})
-
 // Parse argv
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length != 1) {
-  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file] [-u user-agent header] [-a accept header] [-e accept-encoding header] [-r <spdy, h2>]')
-  console.log('-p indicate a HTTP2 TLS proxy to use')
+  console.log('USAGE: node client.js <url> [-p proxy:port] [-k] [-f] [-v] [-h] [-t timeout] [-n times] [-o file] [-u user-agent header] [-a accept header] [-e accept-encoding header]')
+  console.log('-p indicate a spdy TLS proxy to use')
   console.log('-t timeout in seconds')
   console.log('-n number of times to perform the request')
   console.log('-v verbose output')
@@ -29,7 +25,6 @@ if (argv.h || argv._.length != 1) {
   console.log('-u user-agent header (default curl/7.38.0)')
   console.log('-a accept header (default */*)')
   console.log('-e accept-encoding header (default *)')
-  console.log('-r protocol (default h2, options spdy, h2)')
   console.log('-h print this help menu')
   process.exit()
 }
@@ -49,20 +44,16 @@ function createOptions(url) {
 
   options.plain = options.protocol == 'http:'
   options.headers = {
+    'host' : options.hostname,
     'user-agent' : argv.u || 'curl/7.38.0', // Let's make them think we are curl for now
     'accept' : argv.a || '*/*',
     'accept-encoding' : argv.e || '*'
   }
   options.servername = options.hostname
-  if (argv.r == 'spdy') {
-    options.headers['host'] = options.hostname
-    options.agent = spdy.createAgent({
-      host: options.hostname,
-      port: (options.plain ? 80 : 443),
-    });
-  } else {
-    options.headers[':authority'] = options.hostname
-  }
+  options.agent = spdy.createAgent({
+    host: options.hostname,
+    port: (options.plain ? 80 : 443),
+  });
 
   // Proxy present
   if (argv.p) {
@@ -84,17 +75,9 @@ function run(url) {
     console.log(getTimeString()+' REQUEST='+options.href)
   }
   if (options.plain) {
-    if (argv.r == 'spdy') {
-      request = require('http').request(options)
-    } else {
-      request = http2.raw.request(options)
-    }
+    request = http.request(options)
   } else {
-    if (argv.r == 'spdy') {
-      request = require('https').request(options)
-    } else {
-      request = http2.request(options)
-    }
+    request = https.request(options)
   }
   if (argv.v) {
     request.on('newConnection', function(endpoint) {
