@@ -16,8 +16,8 @@ from urlparse import urlparse
 from collections import defaultdict
 
 ENV = '/usr/bin/env'
-NODE = '/home/bkyle/node-v0.10.33/out/Release/node'
-CLIENT = '/home/bkyle/node-http2/example/pageloader_client.js'
+NODE = os.path.dirname(os.path.realpath(__file__)) + '/../../node-v0.10.33/out/Release/node'
+CLIENT = os.path.dirname(os.path.realpath(__file__)) + '/pageloader_client.js'
 TIMEOUT = 20
 
 PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
