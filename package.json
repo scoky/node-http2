@@ -15,7 +15,7 @@
     "length-stream": "*",
     "minimist": "*",
     "coffee-script": "*",
-    "spdy": "*"
+    "spdy": "1.29.1"
   },
   "scripts": {
     "test": "istanbul test _mocha -- --reporter spec --slow 500 --timeout 15000",
