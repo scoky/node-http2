@@ -6,7 +6,7 @@ var http2 = require('..')
 var spdy = require('spdy')
 
 process.on('uncaughtException', function(err) {
-  console.log(getTimeString()+' ERROR='+err);
+  console.log('ERROR='+err);
   // Typically, this is a protocol error
 });
 

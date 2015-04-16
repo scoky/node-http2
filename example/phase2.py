@@ -11,7 +11,7 @@ import cPickle
 from multiprocessing import Pool
 
 ENV = '/usr/bin/env'
-NODE = os.path.dirname(os.path.realpath(__file__)) + '/../../node-v0.10.33/out/Release/node'
+NODE = os.path.dirname(os.path.realpath(__file__)) + '/../../node-v0.10.33/node'
 CLIENT = os.path.dirname(os.path.realpath(__file__)) + '/client.js'
 TIMEOUT = 10
 

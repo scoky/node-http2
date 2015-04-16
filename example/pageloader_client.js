@@ -6,7 +6,7 @@ http2.globalAgent = new http2.Agent({
 });
 
 process.on('uncaughtException', function(err) {
-  console.log(getTimeString()+' ERROR='+err);
+  console.log('ERROR='+err);
   // Typically, this is a protocol error
 });
 
