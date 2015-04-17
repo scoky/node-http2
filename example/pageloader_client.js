@@ -130,7 +130,7 @@ browser.on('newConnection', function(endpoint, hostname, port) {
 
 browser.on('protocolNegotiated', function(protocol, hostname, port) {
   if (argv.v) {
-    console.log(getTimeString()+' PROTOCOL='+protocol)
+    console.log(getTimeString()+' PROTOCOL='+protocol+' ENDPOINT='+hostname+':'+port)
   }
   if (!protocol || protocol.indexOf('h2') !== 0) {
     console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED ENDPOINT='+hostname+':'+port)
