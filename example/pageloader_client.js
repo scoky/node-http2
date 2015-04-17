@@ -5,9 +5,17 @@ http2.globalAgent = new http2.Agent({
   log: require('../test/util').createLogger('client')
 });
 
+var req_counter = 0
 process.on('uncaughtException', function(err) {
   console.log('ERROR='+err);
   // Typically, this is a protocol error
+  var req_count = req_counter
+  setTimeout(function() {
+    if (req_count == req_counter) {
+      console.log(getTimeString()+' TIMEOUT')
+      process.exit(0)
+    }
+  }, 5000)
 });
 
 var CS = require('coffee-script')
@@ -63,7 +71,7 @@ browser.on('request', function(req) {
     return
   }
   reqs.push(req.url)
-
+  req_counter += 1
   if (argv.v) {
     console.log(getTimeString()+' REQUEST='+req.url)
   }
@@ -126,7 +134,13 @@ browser.on('protocolNegotiated', function(protocol, hostname, port) {
   }
   if (!protocol || protocol.indexOf('h2') !== 0) {
     console.log(getTimeString()+' PROTOCOL_NEGOTIATE_FAILED ENDPOINT='+hostname+':'+port)
-//    process.exit(2)
+    var req_count = req_counter
+    setTimeout(function() {
+      if (req_count == req_counter) {
+        console.log(getTimeString()+' TIMEOUT')
+        process.exit(0)
+      }
+    }, 5000)
   }
 })
 
