@@ -15,10 +15,11 @@ NODE = os.path.dirname(os.path.realpath(__file__)) + '/../../node-v0.10.33/node'
 CLIENT = os.path.dirname(os.path.realpath(__file__)) + '/client.js'
 TIMEOUT = 10
 
-def handle_url(url):
+def handle_url(data):
 #   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
+   url, ptcl = data
    try:
-      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', args.protocol] #Null content
+      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
@@ -53,7 +54,7 @@ def parseOutput(url, output, error):
 
     # Received a 2xx response
     if response:
-        return url+' H2_SUPPORT'
+        return url+(' H2_SUPPORT' if args.protocol == 'h2' else ' SPDY_SUPPORT')
     # Could not connection
     if not estab:
         return url+' NO_TCP_HANDSHAKE'
@@ -105,7 +106,7 @@ if __name__ == "__main__":
    for line in args.infile:
       try:
          url, ptcls = line.strip().split(None, 1)
-         urls.add(url)
+         urls.add( (url, args.protocol) )
          protocols[url] = ptcls
       except Exception as e:
          sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), e))
