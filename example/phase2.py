@@ -22,10 +22,10 @@ def handle_url(data):
       cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
-      return url, output, False
+      return url, ptcl, output, False
    except Exception as e:
       sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
-      return url, traceback.format_exc(), True
+      return url, ptcl, traceback.format_exc(), True
 
 def parseOutput(url, output, error):
     if error:
@@ -54,7 +54,7 @@ def parseOutput(url, output, error):
 
     # Received a 2xx response
     if response:
-        return url+(' H2_SUPPORT' if args.protocol == 'h2' else ' SPDY_SUPPORT')
+        return url+' H2_SUPPORT'
     # Could not connection
     if not estab:
         return url+' NO_TCP_HANDSHAKE'
@@ -72,6 +72,39 @@ def parseOutput(url, output, error):
         return url+' REDIRECT_TO_HTTP'
     # No response, protocol error
     return url+' PROTOCOL_ERROR'
+    
+def parseOutputSpdy(url, output, error):
+    if error:
+        return url+' UNKNOWN_ERROR'
+
+    estab = nego = cnego = response = redirect = notfound = serverError = False
+    for line in output.split('\n'):
+        chunks = line.split()
+        if len(chunks) < 2:
+            continue
+        elif chunks[1].startswith('CODE=2'):
+            response = True
+        elif chunks[1].startswith('CODE=3'):
+            redirect = True
+        elif chunks[1].startswith('CODE=4'):
+            notfound = True
+        elif chunks[1].startswith('CODE=5'):
+            serverError = True
+
+    # Received a 2xx response
+    if response:
+        return url+' SPDY_SUPPORT'
+    # Received a 4xx response
+    if notfound:
+        return url+' 4XX_CODE'
+    # Received a 5xx response
+    if serverError:
+        return url+' 5XX_CODE'
+    # Redirected
+    if redirect:
+        return url+' REDIRECT_TO_HTTP'
+    # No response, protocol error
+    return url+' NO_TCP_HANDSHAKE'
    
 
 if __name__ == "__main__":
@@ -116,11 +149,14 @@ if __name__ == "__main__":
    try:
       results = pool.imap(handle_url, urls, args.chunk)
       for result in results:
-         url, output, error = result
+         url, ptcl, output, error = result
          if log:
             cPickle.dump([url, output], log)
-
-         args.outfile.write(parseOutput(url, output, error)+' '+protocols[url]+'\n')
+         if ptcl == 'h2':   
+            output = parseOutput(url, output, error)
+         else:
+            output = parseOutputSpdy(url, output, error)
+         args.outfile.write(output+' '+protocols[url]+'\n')
    except KeyboardInterrupt:
       pool.terminate()
 
