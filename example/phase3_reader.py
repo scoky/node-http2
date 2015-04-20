@@ -89,11 +89,13 @@ def parseOther(key, murl, output, protocol):
             time = float(chunks[0].strip('[s]'))
             objs[count] = Fetch(url, time, False, True, None, count, resp, None)
             last = count
+            urlToCount[url] = count
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
             objs[count] = Fetch(url, time, False, False, None, count, resp, None)
             last = count
+            urlToCount[url] = count
         elif chunks[1].startswith('RESPONSE='):
             url = getURL(chunks[1].split('=', 1)[1])
             size = chunks[2].split('=')[1]
