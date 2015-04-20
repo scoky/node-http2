@@ -34,7 +34,7 @@ def parseH1(key, murl, output):
         elif chunks[1].startswith('PUSH='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, True, None, count, resp, None)
+            objs[count] = Fetch(url, time, False, True, None, count, objs[resp].url, None)
             last = count
             urlToCount[url] = count
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
@@ -47,7 +47,7 @@ def parseH1(key, murl, output):
                 conns[domain] -= 1
 
             time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, new_conn, False, None, count, resp, None)
+            objs[count] = Fetch(url, time, new_conn, False, None, count, objs[resp].url, None)
             last = count
             urlToCount[url] = count
         elif chunks[1].startswith('RESPONSE='):
@@ -87,13 +87,13 @@ def parseOther(key, murl, output, protocol):
         elif chunks[1].startswith('PUSH='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, True, None, count, resp, None)
+            objs[count] = Fetch(url, time, False, True, None, count, objs[resp].url, None)
             last = count
             urlToCount[url] = count
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, False, None, count, resp, None)
+            objs[count] = Fetch(url, time, False, False, None, count, objs[resp].url, None)
             last = count
             urlToCount[url] = count
         elif chunks[1].startswith('RESPONSE='):
