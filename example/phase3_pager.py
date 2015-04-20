@@ -83,6 +83,8 @@ def parseData(data):
     domains = set()
     push = 0
 
+    if data[0].prior:
+      raise Exception('Circular link!')
     tree = getTree(data, data[0])
     # Time depends upon the critical path
     time = getLoadTime(tree, data[0])
@@ -128,8 +130,11 @@ if __name__ == "__main__":
         result = getMedian(p.itervalues())
         p.clear()
         p['median'] = result
-        d = parseData(result)
-        output(page, 'http/1.1', d)
+        try:
+          d = parseData(result)
+          output(page, 'http/1.1', d)
+        except Exception as e:
+          sys.stderr.write('Error on %s: %s\n' % (page, e))
 
     for page,p in data['spdy'].iteritems():
         result = getMedian(p.itervalues())
@@ -141,8 +146,11 @@ if __name__ == "__main__":
                 result.remove(r)
         p.clear()
         p['median'] = result
-        d = parseData(result + additional)
-        output(page, 'spdy', d)
+        try:
+          d = parseData(result + additional)
+          output(page, 'spdy', d)
+        except Exception as e:
+          sys.stderr.write('Error on %s: %s\n' % (page, e))
 
     for page,p in data['h2'].iteritems():
         result = getMedian(p.itervalues())
@@ -157,7 +165,10 @@ if __name__ == "__main__":
             additional += a
             for r in replaced:
                 result.remove(r)
-        d = parseData(result + additional)
-        output(page, 'h2', d)
+        try:
+          d = parseData(result + additional)
+          output(page, 'h2', d)
+        except Exception as e:
+          sys.stderr.write('Error on %s: %s\n' % (page, e))
 
     
