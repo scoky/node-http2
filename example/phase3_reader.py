@@ -31,12 +31,12 @@ def parseH1(key, murl, output):
         if chunks[1].startswith('TCP_CONNECTION='):
             objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
             objs[url] = Fetch(time, False, True, None, count, resp, None)
             last = url
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             domain = urlparse(url).netloc
             if conns[domain] == 0:
                 new_conn = True
@@ -48,7 +48,7 @@ def parseH1(key, murl, output):
             objs[url] = Fetch(time, new_conn, False, None, count, resp, None)
             last = url
         elif chunks[1].startswith('RESPONSE='):
-            url = getURL(chunks[1].split('=')[1])
+            url = getURL(chunks[1].split('=', 1)[1])
             domain = urlparse(url).netloc
             conns[domain] += 1
 
