@@ -83,7 +83,7 @@ def parseData(data):
     domains = set()
     push = 0
 
-    if data[0].prior:
+    if data[0].prior != 'None':
       raise Exception('Circular link!')
     tree = getTree(data, data[0])
     # Time depends upon the critical path
