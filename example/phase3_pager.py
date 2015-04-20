@@ -19,7 +19,9 @@ def getTree(data, root):
     children = []
     for f in data:
         if f.prior == root.url:
-            children.append((f, getTree(data, f)))
+            ndata = list(data)
+            ndata.remove(f)
+            children.append((f, getTree(ndata, f)))
     return children
 
 def flattenTree(tree):
@@ -83,8 +85,8 @@ def parseData(data):
     domains = set()
     push = 0
 
-    if data[0].prior != 'None':
-      raise Exception('Circular link!')
+    #if data[0].prior != 'None':
+    #  raise Exception('Circular link!')
     tree = getTree(data, data[0])
     # Time depends upon the critical path
     time = getLoadTime(tree, data[0])
