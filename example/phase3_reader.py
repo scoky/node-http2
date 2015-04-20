@@ -14,10 +14,11 @@ from collections import namedtuple,defaultdict
 
 PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
 
-Fetch = namedtuple('Fetch', 'request_time new_connection push size order prior code')
+Fetch = namedtuple('Fetch', 'url request_time new_connection push size order prior code')
 
 def parseH1(key, murl, output):
     objs = {}
+    urlToCount = {}
     conns = defaultdict(int)
     count = 0
     last = None
@@ -29,12 +30,13 @@ def parseH1(key, murl, output):
             continue
 
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
+            objs[last] = Fetch(objs[last].url, objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None, count, resp, None)
-            last = url
+            objs[count] = Fetch(url, time, False, True, None, count, resp, None)
+            last = count
+            urlToCount[url] = count
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = getURL(chunks[1].split('=', 1)[1])
             domain = urlparse(url).netloc
@@ -45,8 +47,9 @@ def parseH1(key, murl, output):
                 conns[domain] -= 1
 
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, new_conn, False, None, count, resp, None)
-            last = url
+            objs[count] = Fetch(url, time, new_conn, False, None, count, resp, None)
+            last = count
+            urlToCount[url] = count
         elif chunks[1].startswith('RESPONSE='):
             url = getURL(chunks[1].split('=', 1)[1])
             domain = urlparse(url).netloc
@@ -54,14 +57,14 @@ def parseH1(key, murl, output):
 
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior, '200')
-            resp = url
+            resp = urlToCount[url]
+            objs[resp] = Fetch(url, time - objs[resp].request_time, objs[resp].new_connection, objs[resp].push, size, objs[resp].order, objs[resp].prior, '200')
         elif chunks[1].startswith('CODE='):
             code = chunks[1].split('=')[1]
-            objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
+            objs[resp] = Fetch(objs[resp].url, objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
-    for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
-        args.outfile.write(key + ' ' + murl + ' http/1.1 ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
+    for count,f in sorted(objs.iteritems(), key = lambda v: v[0]):
+        args.outfile.write(key + ' ' + murl + ' http/1.1 ' + f.url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
 
 
 def getURL(uri):
@@ -69,6 +72,7 @@ def getURL(uri):
 
 def parseOther(key, murl, output, protocol):
     objs = {}
+    urlToCount = {}
     last = None
     resp = None
     protocol_fail = False
@@ -79,34 +83,34 @@ def parseOther(key, murl, output, protocol):
         if len(chunks) < 2:
             continue
         if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
+            objs[last] = Fetch(objs[last].url, objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
         elif chunks[1].startswith('PUSH='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, True, None, count, resp, None)
-            last = url
+            objs[count] = Fetch(url, time, False, True, None, count, resp, None)
+            last = count
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
             url = getURL(chunks[1].split('=', 1)[1])
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time, False, False, None, count, resp, None)
-            last = url
+            objs[count] = Fetch(url, time, False, False, None, count, resp, None)
+            last = count
         elif chunks[1].startswith('RESPONSE='):
             url = getURL(chunks[1].split('=', 1)[1])
             size = chunks[2].split('=')[1]
             time = float(chunks[0].strip('[s]'))
-            objs[url] = Fetch(time - objs[url].request_time, objs[url].new_connection, objs[url].push, size, objs[url].order, objs[url].prior, 200)
-            resp = url
+            resp = urlToCount[url]
+            objs[resp] = Fetch(url, time - objs[resp].request_time, objs[resp].new_connection, objs[resp].push, size, objs[resp].order, objs[resp].prior, 200)
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
             protocol_fail = True
         elif chunks[1].startswith('CODE='):
             code = chunks[1].split('=', 1)[1]
-            objs[resp] = Fetch(objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
+            objs[resp] = Fetch(objs[resp].url, objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
 
-    for url,f in sorted(objs.iteritems(), key = lambda v: v[1].order):
+    for count,f in sorted(objs.iteritems(), key = lambda v: v[0]):
         code = f.code
-        if not code and (url.startswith('http:') or protocol_fail):
+        if not code and (f.url.startswith('http:') or protocol_fail):
             code = 'not_supported'
-        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
+        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + f.url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
 
 if __name__ == "__main__":
     # set up command line args
