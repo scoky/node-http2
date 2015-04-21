@@ -134,7 +134,7 @@ if __name__ == "__main__":
         try:
           d = parseData(result)
           output(page, 'h2', d)
-          hr_data[page] = [r.url for r in result]
+          h2_data[page] = [r.url for r in result]
         except Exception as e:
           sys.stderr.write('Error on %s: %s\n' % (page, e))
 
