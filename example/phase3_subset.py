@@ -127,12 +127,14 @@ if __name__ == "__main__":
         data[f.protocol][f.page][f.key].append(f)
 
     h2_data = {}
+    h2_objs = {}
     for page,p in data['h2'].iteritems():
         result = getMedian(p.itervalues())
         try:
           d = parseData(result)
           output(page, 'h2', d)
           h2_data[page] = [r.url for r in result]
+          h2_objs[page] = d[1]
         except Exception as e:
           sys.stderr.write('Error on %s: %s\n' % (page, e))
 
@@ -147,7 +149,8 @@ if __name__ == "__main__":
             if len(subset) == len(h2_data[page]):
                 try:
                     d = parseData(subset)
-                    output(page, 'http/1.1', d)
+                    if d[1] == h2_objs[page]:
+                        output(page, 'http/1.1', d)
                 except Exception as e:
                     sys.stderr.write('Error on %s: %s\n' % (page, e))
 
@@ -162,7 +165,8 @@ if __name__ == "__main__":
             if len(subset) == len(h2_data[page]):
                 try:
                     d = parseData(subset)
-                    output(page, 'spdy', d)
+                    if d[1] == h2_objs[page]:
+                        output(page, 'spdy', d)
                 except Exception as e:
                     sys.stderr.write('Error on %s: %s\n' % (page, e))
 
