@@ -25,11 +25,12 @@ var Browser = require("../../zombie/src/zombie")
 var protocols = ['h2', 'http/1.1', 'spdy']
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
-  console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-r <'+protocols.toString()+'>] [-v] [-h]')
+  console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-r <'+protocols.toString()+'>] [-v] [-u user-agent] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
   console.log('-r indicate a protocol to use, (default '+protocols[0]+')')
   console.log('-t timeout in seconds')
   console.log('-v verbose output')
+  console.log('-u user-agent header')
   console.log('-h print this help menu')
   process.exit()
 }
@@ -38,6 +39,10 @@ var browser = Browser.create()
 // Proxy present
 if (argv.p) {
   browser.setProxy(argv.p)
+}
+
+if (argv.u) {
+  browser.userAgent = argv.u
 }
 
 if (!argv.r || protocols.indexOf(argv.r) === -1) {
