@@ -79,9 +79,9 @@ def fillIn(data, filler):
 
 def parseData(data):
     time = 0
-    objects = {'h2':0, 'http/1.1':0, 'spdy':0}
-    conns = {'h2':0, 'http/1.1':0, 'spdy':0}
-    size = {'h2':0, 'http/1.1':0, 'spdy':0}
+    objects = 0
+    conns = 0
+    size = 0
     domains = set()
     push = 0
 
@@ -94,11 +94,11 @@ def parseData(data):
     # None of the other metrics do
     for f in data:
         if f.code != 'None' and f.code != 'not_supported':
-            objects[f.protocol] += 1
-            size[f.protocol] += int(f.size)
+            objects += 1
+            size += int(f.size)
             # New connection if this request uses a different protocol
             if f.new_connection or f.protocol != data[0].protocol:
-                conns[f.protocol] += 1
+                conns += 1
             if f.push:
                 push += 1
             domains.add(urlparse(f.url).netloc)
@@ -107,10 +107,8 @@ def parseData(data):
 
 def output(url, protocol, data):
     time, objects, conns, size, domains, push = data
-    args.outfile.write( (url + ' ' + protocol + ' objs_h2=' + str(objects['h2']) + ' objs_spdy=' + str(objects['spdy']) +
-        ' objs_h1=' + str(objects['http/1.1']) + ' conns_h2=' + str(conns['h2']) + ' conns_spdy=' + str(conns['spdy']) +
-        ' conns_h1=' + str(conns['http/1.1']) + ' domains=' + str(domains) + ' size_h2=' + str(size['h2']) + ' size_spdy=' + 
-        str(size['spdy']) + ' size_h1=' + str(size['http/1.1']) + ' push=' + str(push) + ' time=' + str(time) + '\n') )
+    args.outfile.write( (url + ' ' + protocol + ' objs=' + str(objects) + ' conns=' + str(conns) + ' domains=' + str(domains) + 
+        ' size=' + str(size) + ' push=' + str(push) + ' time=' + str(time) + '\n') )
 
 if __name__ == "__main__":
     # set up command line args
