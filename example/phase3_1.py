@@ -38,6 +38,8 @@ def handle_url(url, ptcl):
 #   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
    try:
       cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-r', ptcl]#, '-o', '/dev/null'] Null content
+      if args.useragent:
+        cmd += ['-u', args.useragent]
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
@@ -100,6 +102,8 @@ if __name__ == "__main__":
    parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
    parser.add_argument('-d', '--directory', default=None, help='Directory for writing log')
    parser.add_argument('-n', '--numtrials', default=3, type=int, help='number of trials per URL')
+   parser.add_argument('-p', '--prefix', default='stats-', help='prefix for log files')
+   parser.add_argument('-u', '--useragent', default=None, help='user-agent string to use in experiment')
    args = parser.parse_args()
 
    if args.directory != None and not os.path.isdir(args.directory):
@@ -111,7 +115,7 @@ if __name__ == "__main__":
    logfile = None
    log = None
    if args.directory != None:
-   	logfile = os.path.join(args.directory, 'stats-'+datetime.date.today().isoformat()+'.pickle.gz')
+   	logfile = os.path.join(args.directory, args.prefix+datetime.date.today().isoformat()+'.pickle.gz')
 	log = gzip.open(logfile, 'wb')
 
    sys.stderr.write('Command process (pid=%s)\n' % os.getpid())
