@@ -25,12 +25,14 @@ var Browser = require("../../zombie/src/zombie")
 var protocols = ['h2', 'http/1.1', 'spdy']
 var argv = require('minimist')(process.argv.slice(2))
 if (argv.h || argv._.length < 1) {
-  console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-r <'+protocols.toString()+'>] [-v] [-u user-agent] [-h]')
+  console.log('USAGE: node pageloader_client.js <url> [-t timeout] [-p proxy:port] [-r <'+protocols.toString()+'>] [-v] [-u user-agent] [-l tcp_limit] [-c] [-h]')
   console.log('-p indicate a HTTP2 TLS proxy to use')
   console.log('-r indicate a protocol to use, (default '+protocols[0]+')')
   console.log('-t timeout in seconds')
   console.log('-v verbose output')
   console.log('-u user-agent header')
+  console.log('-l limit the number of tcp connections to a single domain')
+  console.log('-c exclude content')
   console.log('-h print this help menu')
   process.exit()
 }
@@ -43,6 +45,9 @@ if (argv.p) {
 
 if (argv.u) {
   browser.userAgent = argv.u
+}
+if(argv.l) {
+  browser.tcpLimit = argv.l
 }
 
 if (!argv.r || protocols.indexOf(argv.r) === -1) {
@@ -93,7 +98,7 @@ browser.on('response', function(req, res) {
     console.log(getTimeString()+' RESPONSE='+res.url+' SIZE='+Buffer(res.body).length)
     console.log(getTimeString()+' CODE='+res.statusCode)
     console.log(getTimeString()+' HEADERS='+JSON.stringify(res.headers, null, '\t')+'\n')
-    if (res.headers['content-type'] && (res.headers['content-type'].indexOf('text') !== -1 ||
+    if (!argv.c && res.headers['content-type'] && (res.headers['content-type'].indexOf('text') !== -1 ||
       res.headers['content-type'].indexOf('html') !== -1)) {
       console.log(getTimeString()+' CONTENT=...')
       console.log(res.body.toString())
