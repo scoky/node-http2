@@ -40,6 +40,8 @@ def handle_url(url, ptcl):
       cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-r', ptcl]#, '-o', '/dev/null'] Null content
       if args.useragent:
         cmd += ['-u', args.useragent]
+      if args.limittcp:
+        cmd += ['-l', args.limittcp]
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
       output = subprocess.check_output(cmd)           
       return url, output, False
@@ -104,6 +106,7 @@ if __name__ == "__main__":
    parser.add_argument('-n', '--numtrials', default=3, type=int, help='number of trials per URL')
    parser.add_argument('-p', '--prefix', default='stats-', help='prefix for log files')
    parser.add_argument('-u', '--useragent', default=None, help='user-agent string to use in experiment')
+   parser.add_argument('-l', '--limittcp', default=None, help='limit on number of tcp connections simulaneous')
    args = parser.parse_args()
 
    if args.directory != None and not os.path.isdir(args.directory):
