@@ -70,6 +70,13 @@ def getMedian(datas): # Get the median load times
         else:
             ret.append(median)
     return ret
+    
+def getMaximum(datas):
+    maximum = []
+    for data in datas:
+        if len(data) > len(maximum):
+            maximum = data
+    return maximum
 
 def fillIn(data, filler): # Fill in the webpage fetch with objects from another protocol
     additional = []
@@ -138,7 +145,7 @@ if __name__ == "__main__":
         data[f.protocol][f.page][f.key].append(f)
 
     for page,p in data[H1].iteritems():
-        result = getMedian(p.itervalues())
+        result = getMaximum(p.itervalues())
         p.clear()
         p['median'] = result
         try:
@@ -148,7 +155,7 @@ if __name__ == "__main__":
           sys.stderr.write('Error on %s: %s\n' % (page, e))
 
     for page,p in data[SPDY].iteritems():
-        result = getMedian(p.itervalues())
+        result = getMaximum(p.itervalues())
         additional = []
         if page in data[H1]:
             a, replaced = fillIn(result, data[H1][page]['median'])
@@ -164,7 +171,7 @@ if __name__ == "__main__":
           sys.stderr.write('Error on %s: %s\n' % (page, e))
 
     for page,p in data[H2].iteritems():
-        result = getMedian(p.itervalues())
+        result = getMaximum(p.itervalues())
         additional = []
         if page in data[SPDY]:
             a, replaced = fillIn(result, data[SPDY][page]['median'])
