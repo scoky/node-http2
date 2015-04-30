@@ -121,7 +121,8 @@ if __name__ == "__main__":
     data = {'h2':defaultdict(dict), 'http/1.1':defaultdict(dict), 'spdy':defaultdict(dict)}
     for line in args.infile:
         chunks = line.rstrip().split()
-        f = Fetch(chunks[0], chunks[1], chunks[2], chunks[3], chunks[4] == 'True', chunks[5] == 'True', chunks[6], float(chunks[7]), chunks[8], chunks[9])
+        f = Fetch(chunks[0], chunks[1], chunks[2], chunks[3], chunks[4] == 'True', chunks[5] == 'True', 
+            chunks[6], 0 if chunks[7] == 'None' else float(chunks[7]), chunks[8], chunks[9])
         if f.key not in data[f.protocol][f.page]:
             data[f.protocol][f.page][f.key] = []
         data[f.protocol][f.page][f.key].append(f)

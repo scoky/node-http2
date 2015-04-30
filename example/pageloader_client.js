@@ -174,5 +174,6 @@ browser.visit(argv._[0], function () {
     }, 5000)
   }
   waitForDone()
+  console.log(getTimeString()+' VISITED')
 });
 

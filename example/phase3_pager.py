@@ -101,9 +101,12 @@ def parseData(data):
     domains = set()
     push = 0
 
-    tree = getTree(data, data[0])
+    root = data[0]
+    ndata = list(data)
+    ndata.pop(0)
+    tree = getTree(ndata, root)
     # Time depends upon the critical path
-    time = getLoadTime(tree, data[0])
+    time = getLoadTime(tree, root)
 
     # None of the other metrics do
     for f in data:
