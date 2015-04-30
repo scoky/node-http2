@@ -86,7 +86,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
 
     for obj in sorted(objs.itervalues(), key = lambda v: v.ident):
         if not obj.code and protocol != H1 and (obj.url.startswith('http://') or protocol_fail): 
-            code = 'not_supported' # The object was never fetched. Likely cause is that it cannot be loaded over this protocol
+            obj.code = 'not_supported' # The object was never fetched. Likely cause is that it cannot be loaded over this protocol
 
         fetch_time = None
         if obj.response_time: # Calculate the time to fetch the object
@@ -97,7 +97,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
         prior = objs[obj.prior].url if obj.prior else None
 
         args.outfile.write(key + ' ' + main_url + ' ' + protocol + ' ' + obj.url + ' ' + str(obj.new_connection) + ' ' + 
-            str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(code) + '\n')
+            str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(obj.code) + '\n')
 
 def getURL(uri):
     return uri.rstrip('/') # Sometimes present, sometimes not. Make consistent
