@@ -27,11 +27,13 @@ class Fetch(object):
 
 def getTree(data, root): # Convert a flat list of requests in a webpage into a tree
     children = []
+    ndata = list(data)
     for f in data:
         if f.prior == root.url:
-            ndata = list(data)
-            ndata.remove(f) # Prevent circular references
-            children.append((f, getTree(ndata, f)))
+            children.append( (f, []) )
+            ndata.remove(f) # Prevent circular references  
+    for f,c in children:
+        c.extend(getTree(ndata, f))
     return children
 
 def flattenTree(tree): # Convert tree into a flat list
