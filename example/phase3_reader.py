@@ -1,118 +1,106 @@
 #!/usr/bin/python
 
 import os
-import re
 import sys
-import time
-import string
+import cPickle
 import argparse
 import traceback
-import datetime
-import cPickle
 from urlparse import urlparse
-from collections import namedtuple,defaultdict
+from collections import defaultdict
 
-PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
+H2 = 'h2'
+H1 = 'http/1.1'
+SPDY = 'spdy'
+PROTOCOLS = { H2, H1, SPDY }
 
-Fetch = namedtuple('Fetch', 'url request_time new_connection push size order prior code')
+class Fetch(object):
+    def __init__(self, url, request_time, new_connection, push, size, ident, prior, code):
+        self.url = url
+        self.request_time = request_time
+        self.new_connection = new_connection
+        self.push = push
+        self.size = size
+        self.ident = ident
+        self.prior = prior
+        self.code = code
+        self.response_time = None
 
-def parseH1(key, murl, output):
+def parseWebPageFetch(key, main_url, output, protocol):
     objs = {}
-    urlToCount = {}
-    conns = defaultdict(int)
-    count = 0
-    last = None
-    resp = None
+    urlToIdent = {}
+    h1Connections = defaultdict(int) # State of TCP connections for a domain
+    ident = 0
+    last_request = None
+    last_response = None
+    protocol_fail = False
+    # Go line by line through the pageloader output
     for line in output.split('\n'):
-        count += 1
         chunks = line.split()
+        # Look for keyword lines only
         if len(chunks) < 2:
             continue
-
-        if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].url, objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
-        elif chunks[1].startswith('PUSH='):
-            url = getURL(chunks[1].split('=', 1)[1])
+        try:
             time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, True, None, count, (objs[resp].url if resp else None), None)
-            last = count
-            urlToCount[url] = count
-        elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
+        except:
+            continue
+        ident += 1
+
+        if chunks[1].startswith('TCP_CONNECTION='): # Last request caused a new TCP connection to be created
+            objs[last_request].new_connection = True
+
+        elif chunks[1].startswith('PUSH='): # Accepted a push request (this never happens)
             url = getURL(chunks[1].split('=', 1)[1])
-            domain = urlparse(url).netloc
-            if conns[domain] == 0:
-                new_conn = True
-            else:
-                new_conn = False
-                conns[domain] -= 1
+            objs[ident] = Fetch(url, time, False, True, None, ident, (objs[last_response].ident if last_response else None), None)
+            last_request = ident
+            urlToIdent[url] = ident
 
-            time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, new_conn, False, None, count, (objs[resp].url if resp else None), None)
-            last = count
-            urlToCount[url] = count
-        elif chunks[1].startswith('RESPONSE='):
+        elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='): # Making a new request (possibly due to a redirect)
             url = getURL(chunks[1].split('=', 1)[1])
-            domain = urlparse(url).netloc
-            conns[domain] += 1
+            objs[ident] = Fetch(url, time, False, False, None, ident, (objs[last_response].ident if last_response else None), None)
+            last_request = ident
+            urlToIdent[url] = ident
 
-            size = chunks[2].split('=')[1]
-            time = float(chunks[0].strip('[s]'))
-            resp = urlToCount[url]
-            objs[resp] = Fetch(url, time - objs[resp].request_time, objs[resp].new_connection, objs[resp].push, size, objs[resp].order, objs[resp].prior, '200')
-        elif chunks[1].startswith('CODE='):
-            code = chunks[1].split('=')[1]
-            objs[resp] = Fetch(objs[resp].url, objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
+            if protocol == H1: # H1 connections must be handled in post because there is no event from the h1 library
+                domain = urlparse(url).netloc # This implementation assumes unlimited connections
+                if h1Connections[domain] == 0:
+                    objs[ident].new_connection = True
+                else:
+                    objs[ident].new_connection = False
+                    h1Connections[domain] -= 1
 
-    for count,f in sorted(objs.iteritems(), key = lambda v: v[0]):
-        args.outfile.write(key + ' ' + murl + ' http/1.1 ' + f.url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(f.code) + '\n')
+        elif chunks[1].startswith('RESPONSE='): # Received a response
+            url = getURL(chunks[1].split('=', 1)[1])
+            last_response = urlToIdent[url]
+            objs[last_response].size = chunks[2].split('=')[1]
+            objs[last_response].response_time = time
 
+            if protocol == H1: # Free TCP connection now available
+                domain = urlparse(url).netloc
+                h1Connections[domain] += 1
+
+        elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED': # There has been a protocl error on one of the connections.
+            protocol_fail = True # There is no indication given as to which, so we are left to guess
+
+        elif chunks[1].startswith('CODE='): # Response code value for the last response
+            objs[last_response].code = chunks[1].split('=')[1]
+
+    for obj in sorted(objs.itervalues(), key = lambda v: v.ident):
+        if not obj.code and protocol != H1 and (obj.url.startswith('http://') or protocol_fail): 
+            code = 'not_supported' # The object was never fetched. Likely cause is that it cannot be loaded over this protocol
+
+        fetch_time = None
+        if obj.response_time: # Calculate the time to fetch the object
+            fetch_time = obj.response_time - obj.request_time
+            if obj.prior: # If there was a prior object, then calculate the time from when it received (i.e., include processing time)
+                fetch_time = obj.response_time - objs[obj.prior].response_time
+                
+        prior = objs[obj.prior].url if obj.prior else None
+
+        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + obj.url + ' ' + str(obj.new_connection) + ' ' + 
+            str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(code) + '\n')
 
 def getURL(uri):
-    return uri.rstrip('/')
-
-def parseOther(key, murl, output, protocol):
-    objs = {}
-    urlToCount = {}
-    last = None
-    resp = None
-    protocol_fail = False
-    count = 0
-    for line in output.split('\n'):
-        chunks = line.split()
-        count += 1
-        if len(chunks) < 2:
-            continue
-        if chunks[1].startswith('TCP_CONNECTION='):
-            objs[last] = Fetch(objs[last].url, objs[last].request_time, True, objs[last].push, objs[last].size, objs[last].order, objs[last].prior, objs[last].code)
-        elif chunks[1].startswith('PUSH='):
-            url = getURL(chunks[1].split('=', 1)[1])
-            time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, True, None, count, (objs[resp].url if resp else None), None)
-            last = count
-            urlToCount[url] = count
-        elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='):
-            url = getURL(chunks[1].split('=', 1)[1])
-            time = float(chunks[0].strip('[s]'))
-            objs[count] = Fetch(url, time, False, False, None, count, (objs[resp].url if resp else None), None)
-            last = count
-            urlToCount[url] = count
-        elif chunks[1].startswith('RESPONSE='):
-            url = getURL(chunks[1].split('=', 1)[1])
-            size = chunks[2].split('=')[1]
-            time = float(chunks[0].strip('[s]'))
-            resp = urlToCount[url]
-            objs[resp] = Fetch(url, time - objs[resp].request_time, objs[resp].new_connection, objs[resp].push, size, objs[resp].order, objs[resp].prior, 200)
-        elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED':
-            protocol_fail = True
-        elif chunks[1].startswith('CODE='):
-            code = chunks[1].split('=', 1)[1]
-            objs[resp] = Fetch(objs[resp].url, objs[resp].request_time, objs[resp].new_connection, objs[resp].push, objs[resp].size, objs[resp].order, objs[resp].prior, code)
-
-    for count,f in sorted(objs.iteritems(), key = lambda v: v[0]):
-        code = f.code
-        if not code and (f.url.startswith('http:') or protocol_fail):
-            code = 'not_supported'
-        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + f.url + ' ' + str(f.new_connection) + ' ' + str(f.push) + ' ' + str(f.size) + ' ' + str(f.request_time) + ' ' + str(f.prior) + ' ' + str(code) + '\n')
+    return uri.rstrip('/') # Sometimes present, sometimes not. Make consistent
 
 if __name__ == "__main__":
     # set up command line args
@@ -122,16 +110,11 @@ if __name__ == "__main__":
     parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
     args = parser.parse_args()
 
-    obj = None
     count = 0
     while True:
         try:
-            obj = cPickle.load(args.infile)
-            url, output, protocol = obj
-            if protocol == 'http/1.1':
-                parseH1('fetch'+str(count), url, output)
-            else:
-                parseOther('fetch'+str(count), url, output, protocol)
+            url, output, protocol = cPickle.load(args.infile)
+            parseWebPageFetch('fetch'+str(count), url, output, protocol)
             count += 1
         except EOFError:
             break
