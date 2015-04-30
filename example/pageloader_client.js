@@ -155,11 +155,24 @@ browser.on('protocolNegotiated', function(protocol, hostname, port) {
 })
 
 browser.visit(argv._[0], function () {
+// Success throws an error if all objects are not loaded. Since we want to load partial webpages with a single protocol, dont use this.
 //  browser.assert.success()
-//  Poorly structure output. We can do better
+// Poorly structured output. We can do better.
 //  browser.resources.dump()
 
-  console.log(getTimeString()+' DONE')
-  process.exit(0)
+  // Despite what Zombie documentation would tell you, the page is not actually loaded at this point.
+  // Set a timer and watch for end of activity
+  function waitForDone() {
+    var req_count = req_counter
+    setTimeout(function() {
+      if (req_count == req_counter) {
+        console.log(getTimeString()+' DONE')
+        process.exit(0)
+      } else {
+        waitForDone()
+      }
+    }, 5000)
+  }
+  waitForDone()
 });
 
