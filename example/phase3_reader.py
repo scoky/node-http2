@@ -96,7 +96,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
                 
         prior = objs[obj.prior].url if obj.prior else None
 
-        args.outfile.write(key + ' ' + murl + ' ' + protocol + ' ' + obj.url + ' ' + str(obj.new_connection) + ' ' + 
+        args.outfile.write(key + ' ' + main_url + ' ' + protocol + ' ' + obj.url + ' ' + str(obj.new_connection) + ' ' + 
             str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(code) + '\n')
 
 def getURL(uri):
