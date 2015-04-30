@@ -60,13 +60,13 @@ def parseWebPageFetch(key, main_url, output, protocol):
             last_request = ident
             urlToIdent[url] = ident
 
-            if protocol == H1: # H1 connections must be handled in post because there is no event from the h1 library
-                domain = urlparse(url).netloc # This implementation assumes unlimited connections
-                if h1Connections[domain] == 0:
-                    objs[ident].new_connection = True
-                else:
-                    objs[ident].new_connection = False
-                    h1Connections[domain] -= 1
+#            if protocol == H1: # H1 connections must be handled in post because there is no event from the h1 library
+#                domain = urlparse(url).netloc # This implementation assumes unlimited connections
+#                if h1Connections[domain] == 0:
+#                    objs[ident].new_connection = True
+#                else:
+#                    objs[ident].new_connection = False
+#                    h1Connections[domain] -= 1
 
         elif chunks[1].startswith('RESPONSE='): # Received a response
             url = getURL(chunks[1].split('=', 1)[1])
@@ -74,15 +74,18 @@ def parseWebPageFetch(key, main_url, output, protocol):
             objs[last_response].size = chunks[2].split('=')[1]
             objs[last_response].response_time = time
 
-            if protocol == H1: # Free TCP connection now available
-                domain = urlparse(url).netloc
-                h1Connections[domain] += 1
+#            if protocol == H1:  # Free TCP connection now available
+#                domain = urlparse(url).netloc
+#                h1Connections[domain] += 1
 
         elif chunks[1] == 'PROTOCOL_NEGOTIATE_FAILED': # There has been a protocl error on one of the connections.
             protocol_fail = True # There is no indication given as to which, so we are left to guess
 
         elif chunks[1].startswith('CODE='): # Response code value for the last response
             objs[last_response].code = chunks[1].split('=')[1]
+            
+        elif chunks[1] == 'VISITED':
+            break # Terminate once the browser determines the page to be 'loaded'
 
     for obj in sorted(objs.itervalues(), key = lambda v: v.ident):
         if not obj.code and protocol != H1 and (obj.url.startswith('http://') or protocol_fail): 
