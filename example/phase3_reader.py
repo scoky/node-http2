@@ -84,7 +84,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
         elif chunks[1].startswith('CODE='): # Response code value for the last response
             objs[last_response].code = chunks[1].split('=')[1]
             
-        elif chunks[1] == 'VISITED':
+        elif chunks[1] == 'VISITED' and args.visit:
             break # Terminate once the browser determines the page to be 'loaded'
 
     for obj in sorted(objs.itervalues(), key = lambda v: v.ident):
@@ -111,6 +111,7 @@ if __name__ == "__main__":
                      description='Read phase3 log files')
     parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
+    parser.add_argument('-v', '--visit', action='store_true', default=False, help='Terminate on visited event')
     args = parser.parse_args()
 
     count = 0
