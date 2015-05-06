@@ -27,8 +27,7 @@ class Fetch(object):
         self.after_visit = after_visit
         
     def output(self):
-        return self.key + ' ' + self.page + ' ' + self.protocol + ' ' + self.url + ' ' + str(self.new_connection) + ' ' + 
-            str(self.push) + ' ' + str(self.size) + ' ' + str(self.fetch_time) + ' ' + self.prior + ' ' + self.code + ' ' + self.after_visit
+        return self.key + ' ' + self.page + ' ' + self.protocol + ' ' + self.url + ' ' + str(self.new_connection) + ' ' + str(self.push) + ' ' + str(self.size) + ' ' + str(self.fetch_time) + ' ' + self.prior + ' ' + self.code + ' ' + self.after_visit
 
 
 def getTree(data, root): # Convert a flat list of requests in a webpage into a tree
@@ -134,7 +133,7 @@ def parseData(data):
     
 def printObjects(url, protocol, data):
     for d in data:
-        args.outfile.write(url + ' ' + protocol + ' ' d.output() + '\n')
+        args.outfile.write(url + ' ' + protocol + ' ' + d.output() + '\n')
 
 def output(url, protocol, data):
     pass
@@ -156,7 +155,7 @@ if __name__ == "__main__":
     for line in args.infile:
         chunks = line.rstrip().split()
         f = Fetch(chunks[0], chunks[1], chunks[2], chunks[3], chunks[4] == 'True', chunks[5] == 'True', 
-            chunks[6], 0 if chunks[7] == 'None' else float(chunks[7]), chunks[8], chunks[9])
+            chunks[6], 0 if chunks[7] == 'None' else float(chunks[7]), chunks[8], chunks[9], chunks[10])
         if f.key not in data[f.protocol][f.page]:
             data[f.protocol][f.page][f.key] = []
         data[f.protocol][f.page][f.key].append(f)
