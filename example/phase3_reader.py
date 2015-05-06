@@ -14,7 +14,7 @@ SPDY = 'spdy'
 PROTOCOLS = { H2, H1, SPDY }
 
 class Fetch(object):
-    def __init__(self, url, request_time, new_connection, push, size, ident, prior, code):
+    def __init__(self, url, request_time, new_connection, push, size, ident, prior, code, after_visit):
         self.url = url
         self.request_time = request_time
         self.new_connection = new_connection
@@ -24,6 +24,7 @@ class Fetch(object):
         self.prior = prior
         self.code = code
         self.response_time = None
+        self.after_visit = after_visit
 
 def parseWebPageFetch(key, main_url, output, protocol):
     objs = {}
@@ -33,6 +34,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
     last_request = None
     last_response = None
     protocol_fail = False
+    after_visit = False
     # Go line by line through the pageloader output
     for line in output.split('\n'):
         chunks = line.split()
@@ -50,13 +52,13 @@ def parseWebPageFetch(key, main_url, output, protocol):
 
         elif chunks[1].startswith('PUSH='): # Accepted a push request (this never happens)
             url = getURL(chunks[1].split('=', 1)[1])
-            objs[ident] = Fetch(url, time, False, True, None, ident, (objs[last_response].ident if last_response else None), None)
+            objs[ident] = Fetch(url, time, False, True, None, ident, (objs[last_response].ident if last_response else None), None, after_visit)
             last_request = ident
             urlToIdent[url] = ident
 
         elif chunks[1].startswith('REQUEST=') or chunks[1].startswith('REDIRECT='): # Making a new request (possibly due to a redirect)
             url = getURL(chunks[1].split('=', 1)[1])
-            objs[ident] = Fetch(url, time, False, False, None, ident, (objs[last_response].ident if last_response else None), None)
+            objs[ident] = Fetch(url, time, False, False, None, ident, (objs[last_response].ident if last_response else None), None, after_visit)
             last_request = ident
             urlToIdent[url] = ident
 
@@ -73,6 +75,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
             last_response = urlToIdent[url]
             objs[last_response].size = chunks[2].split('=')[1]
             objs[last_response].response_time = time
+            objs[last_response].after_visit = after_visit
 
 #            if protocol == H1:  # Free TCP connection now available
 #                domain = urlparse(url).netloc
@@ -84,8 +87,10 @@ def parseWebPageFetch(key, main_url, output, protocol):
         elif chunks[1].startswith('CODE='): # Response code value for the last response
             objs[last_response].code = chunks[1].split('=')[1]
             
-        elif chunks[1] == 'VISITED' and args.visit:
-            break # Terminate once the browser determines the page to be 'loaded'
+        elif chunks[1] == 'VISITED':
+            after_visit = True
+            if args.visit:
+                break # Terminate once the browser determines the page to be 'loaded'
 
     for obj in sorted(objs.itervalues(), key = lambda v: v.ident):
         if not obj.code and protocol != H1 and (obj.url.startswith('http://') or protocol_fail): 
@@ -100,7 +105,7 @@ def parseWebPageFetch(key, main_url, output, protocol):
         prior = objs[obj.prior].url if obj.prior else None
 
         args.outfile.write(key + ' ' + main_url + ' ' + protocol + ' ' + obj.url + ' ' + str(obj.new_connection) + ' ' + 
-            str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(obj.code) + '\n')
+            str(obj.push) + ' ' + str(obj.size) + ' ' + str(fetch_time) + ' ' + str(prior) + ' ' + str(obj.code) + ' ' + str(obj.after_visit) + '\n')
 
 def getURL(uri):
     return uri.rstrip('/') # Sometimes present, sometimes not. Make consistent
