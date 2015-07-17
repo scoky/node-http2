@@ -53,7 +53,7 @@ def parseOutput(url, output, error):
         elif chunks[1].startswith('CODE=5') and cnego:
             serverError = True
         elif chunks[0] == "\"server\":":
-            server = chunks[1].strip("\",")
+            server = '_'.join(chunks[1:]).strip(",")
 
     # Received a 2xx response
     if response:
@@ -94,7 +94,7 @@ def parseOutputSpdy(url, output, error):
         elif chunks[1].startswith('CODE=5'):
             serverError = True
         elif chunks[0] == "\"server\":":
-            server = chunks[1].strip("\",")
+            server = '_'.join(chunks[1:]).strip(",")
 
     # Received a 2xx response
     if response:
