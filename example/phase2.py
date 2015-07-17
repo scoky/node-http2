@@ -28,8 +28,9 @@ def handle_url(data):
       return url, ptcl, traceback.format_exc(), True
 
 def parseOutput(url, output, error):
+    server='unknown'
     if error:
-        return url+' UNKNOWN_ERROR'
+        return url+' UNKNOWN_ERROR server=' + server
 
     estab = nego = cnego = response = redirect = notfound = serverError = False
     for line in output.split('\n'):
@@ -51,31 +52,33 @@ def parseOutput(url, output, error):
             notfound = True
         elif chunks[1].startswith('CODE=5') and cnego:
             serverError = True
+        elif chunks[0] == "\"server\":":
+            server = chunks[1].strip("\",")
 
     # Received a 2xx response
     if response:
-        return url+' H2_SUPPORT'
+        return url+' H2_SUPPORT server=' + server
     # Could not connection
     if not estab:
-        return url+' NO_TCP_HANDSHAKE'
+        return url+' NO_TCP_HANDSHAKE server=' + server
     # Could not negotiate h2 via NPN/ALPN
     if not nego:
-        return url+' NO_H2_NEGO'
+        return url+' NO_H2_NEGO server=' + server
     # Received a 4xx response
     if notfound:
-        return url+' 4XX_CODE'
+        return url+' 4XX_CODE server=' + server
     # Received a 5xx response
     if serverError:
-        return url+' 5XX_CODE'
+        return url+' 5XX_CODE server=' + server
     # Redirected
     if redirect:
-        return url+' REDIRECT_TO_HTTP'
+        return url+' REDIRECT_TO_HTTP server=' + server
     # No response, protocol error
-    return url+' PROTOCOL_ERROR'
+    return url+' PROTOCOL_ERROR server=' + server
     
 def parseOutputSpdy(url, output, error):
     if error:
-        return url+' UNKNOWN_ERROR'
+        return url+' UNKNOWN_ERROR server=' + server
 
     estab = nego = cnego = response = redirect = notfound = serverError = False
     for line in output.split('\n'):
@@ -90,21 +93,23 @@ def parseOutputSpdy(url, output, error):
             notfound = True
         elif chunks[1].startswith('CODE=5'):
             serverError = True
+        elif chunks[0] == "\"server\":":
+            server = chunks[1].strip("\",")
 
     # Received a 2xx response
     if response:
-        return url+' SPDY_SUPPORT'
+        return url+' SPDY_SUPPORT server=' + server
     # Received a 4xx response
     if notfound:
-        return url+' 4XX_CODE'
+        return url+' 4XX_CODE server=' + server
     # Received a 5xx response
     if serverError:
-        return url+' 5XX_CODE'
+        return url+' 5XX_CODE server=' + server
     # Redirected
     if redirect:
-        return url+' REDIRECT_TO_HTTP'
+        return url+' REDIRECT_TO_HTTP server=' + server
     # No response, protocol error
-    return url+' NO_TCP_HANDSHAKE'
+    return url+' NO_TCP_HANDSHAKE server=' + server
    
 
 if __name__ == "__main__":
