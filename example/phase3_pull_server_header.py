@@ -8,7 +8,7 @@ import traceback
 from urlparse import urlparse
 from collections import defaultdict
 
-def parseWebPageFetch(key, main_url, output, protocol):
+def parseWebPageFetch(main_url, output, protocol):
     server = 'unknown'
     for line in output.split('\n'):
         chunks = line.split()
@@ -16,10 +16,10 @@ def parseWebPageFetch(key, main_url, output, protocol):
         if len(chunks) < 2:
             continue
         if chunks[0] == "\"server\":":
-            server = chunks[1].strip("\",")
+            server = '_'.join(chunks[1:]).strip(",")
             break
 
-        args.outfile.write(url + ' server=' + server + '\n')
+    args.outfile.write(main_url + ' ' + protocol + ' server=' + server + '\n')
 
 if __name__ == "__main__":
     # set up command line args
