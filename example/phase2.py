@@ -77,6 +77,7 @@ def parseOutput(url, output, error):
     return url+' PROTOCOL_ERROR server=' + server
     
 def parseOutputSpdy(url, output, error):
+    server='unknown'
     if error:
         return url+' UNKNOWN_ERROR server=' + server
 
