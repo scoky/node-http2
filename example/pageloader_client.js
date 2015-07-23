@@ -59,12 +59,12 @@ browser.setProtocol(argv.r)
 //Browser.dns.map('*', 'A', '195.235.93.225')
 //Browser.ports.map('195.235.93.225', 3456)
 if (argv.t) {
-  browser.waitDuration = argv.t*1000-500
   // Give the browser a brief chance to clean up (hence -500)
   setTimeout(function() { 
     console.log(getTimeString()+' TIMEOUT')
     process.exit(0) 
   }, argv.t*1000)
+  browser.waitDuration = argv.t*1000-500
 }
 // Start the timer
 var time = process.hrtime()

@@ -11,6 +11,7 @@ import traceback
 import subprocess
 import datetime
 import cPickle
+import signal
 from multiprocessing import Pool
 from urlparse import urlparse
 from collections import defaultdict
@@ -21,6 +22,22 @@ CLIENT = os.path.dirname(os.path.realpath(__file__)) + '/pageloader_client.js'
 TIMEOUT = 20
 
 PROTOCOLS = { 'h2', 'http/1.1', 'spdy' }
+
+class TimeoutError(Exception):
+    pass
+
+class Timeout:
+    '''Can be used w/ 'with' to make arbitrary function calls with timeouts'''
+    def __init__(self, seconds=10, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+    def handle_timeout(self, signum, frame):
+        raise TimeoutError(self.error_message)
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
 
 class Stats(object):
    def __init__(self, url, output):
@@ -43,7 +60,8 @@ def handle_url(url, ptcl):
       if args.limittcp:
         cmd += ['-l', args.limittcp]
 #      sys.stderr.write('Running cmd: %s\n' % cmd)
-      output = subprocess.check_output(cmd)           
+      with Timeout(seconds=TIMEOUT+5):
+        output = subprocess.check_output(cmd)
       return url, output, False
    except Exception as e:
       sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
