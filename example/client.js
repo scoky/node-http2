@@ -110,6 +110,11 @@ function run(url) {
       process.exit(0)
     }
   })
+  request.on('certificateValid', function(valid) {
+    if (argv.v) {
+      console.log(getTimeString()+' CERT_VALID='+valid)
+    }
+  })
   request.on('error', function(err) {
     console.log(getTimeString()+' ERROR='+err)
   })

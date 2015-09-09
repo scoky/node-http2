@@ -31,6 +31,9 @@ def parseOutput(url, output, error):
     server='unknown'
     if error:
         return url+' UNKNOWN_ERROR server=' + server
+    valid='BADCERT'
+    # No response, protocol error
+    status='PROTOCOL_ERROR'
 
     estab = nego = cnego = response = redirect = notfound = serverError = False
     for line in output.split('\n'):
@@ -42,6 +45,9 @@ def parseOutput(url, output, error):
         elif chunks[1].startswith('PROTOCOL=h2'):
             nego = True
             cnego = True
+        elif chunks[1].startswith('CERT_VALID='):
+            if bool(chunks[1].split('=')[1]):
+                valid='GOODCERT'
         elif chunks[1].startswith('PROTOCOL='):
             cnego = False
         elif chunks[1].startswith('CODE=2') and cnego:
@@ -57,24 +63,24 @@ def parseOutput(url, output, error):
 
     # Received a 2xx response
     if response:
-        return url+' H2_SUPPORT server=' + server
+        status='H2_SUPPORT'
     # Could not connection
-    if not estab:
-        return url+' NO_TCP_HANDSHAKE server=' + server
+    elif not estab:
+        status='NO_TCP_HANDSHAKE'
     # Could not negotiate h2 via NPN/ALPN
-    if not nego:
-        return url+' NO_H2_NEGO server=' + server
+    elif not nego:
+        status='NO_H2_NEGO'
     # Received a 4xx response
-    if notfound:
-        return url+' 4XX_CODE server=' + server
+    elif notfound:
+        status='4XX_CODE'
     # Received a 5xx response
-    if serverError:
-        return url+' 5XX_CODE server=' + server
+    elif serverError:
+        status='5XX_CODE'
     # Redirected
-    if redirect:
-        return url+' REDIRECT_TO_HTTP server=' + server
-    # No response, protocol error
-    return url+' PROTOCOL_ERROR server=' + server
+    elif redirect:
+        status='REDIRECT_TO_HTTP'
+    
+    return url + ' ' + status + ' ' + valid + ' server=' + server
     
 def parseOutputSpdy(url, output, error):
     server='unknown'
