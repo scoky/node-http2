@@ -46,7 +46,7 @@ def parseOutput(url, output, error):
             nego = True
             cnego = True
         elif chunks[1].startswith('CERT_VALID='):
-            if bool(chunks[1].split('=')[1]):
+            if chunks[1].split('=')[1] == 'true':
                 valid='GOODCERT'
         elif chunks[1].startswith('PROTOCOL='):
             cnego = False
