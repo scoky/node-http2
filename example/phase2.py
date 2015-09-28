@@ -32,6 +32,7 @@ def parseOutput(url, output, error):
     if error:
         return url+' UNKNOWN_ERROR server=' + server
     valid='BADCERT'
+    firstcert = True
     # No response, protocol error
     status='PROTOCOL_ERROR'
 
@@ -46,8 +47,9 @@ def parseOutput(url, output, error):
             nego = True
             cnego = True
         elif chunks[1].startswith('CERT_VALID='):
-            if chunks[1].split('=')[1] == 'true':
+            if chunks[1].split('=')[1] == 'true' and firstcert:
                 valid='GOODCERT'
+            firstcert = False
         elif chunks[1].startswith('PROTOCOL='):
             cnego = False
         elif chunks[1].startswith('CODE=2') and cnego:
@@ -168,7 +170,7 @@ if __name__ == "__main__":
             output = parseOutput(url, output, error)
          else:
             output = parseOutputSpdy(url, output, error)
-         args.outfile.write(output+' '+protocols[url]+'\n')
+         args.outfile.write(output+'\n') #'+protocols[url]+'
    except KeyboardInterrupt:
       pool.terminate()
 
