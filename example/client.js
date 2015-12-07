@@ -84,6 +84,7 @@ function run(url) {
     console.log(getTimeString()+' REQUEST='+options.href)
   }
   if (options.plain) {
+    console.log(getTimeString()+' TCP_CONNECTION='+JSON.stringify({}, null, '\t'))
     request = require('http').request(options)
 //    if (argv.r == 'spdy') {
 //      request = require('http').request(options)

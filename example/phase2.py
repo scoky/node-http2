@@ -43,6 +43,7 @@ def parseOutput(url, output, error):
             continue
         if chunks[1].startswith('TCP_CONNECTION'):
             estab = True
+            cnego = False
         elif chunks[1].startswith('PROTOCOL=h2'):
             nego = True
             cnego = True
@@ -50,8 +51,6 @@ def parseOutput(url, output, error):
             if chunks[1].split('=')[1] == 'true' and firstcert:
                 valid='GOODCERT'
             firstcert = False
-        elif chunks[1].startswith('REQUEST='):
-            cnego = False
         elif chunks[1].startswith('CODE=2') and cnego:
             response = True
         elif chunks[1].startswith('CODE=3') and cnego:
