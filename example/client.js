@@ -60,7 +60,7 @@ function createOptions(url) {
       host: options.hostname,
       port: (options.plain ? 80 : 443),
     });
-  } else {
+  } else if (!options.plain) {
     options.headers[':authority'] = options.hostname
   }
 
@@ -84,11 +84,12 @@ function run(url) {
     console.log(getTimeString()+' REQUEST='+options.href)
   }
   if (options.plain) {
-    if (argv.r == 'spdy') {
-      request = require('http').request(options)
-    } else {
-      request = http2.raw.request(options)
-    }
+    request = require('http').request(options)
+//    if (argv.r == 'spdy') {
+//      request = require('http').request(options)
+//    } else {
+//      request = http2.raw.request(options)
+//    }
   } else {
     if (argv.r == 'spdy') {
       request = require('https').request(options)
@@ -131,7 +132,7 @@ function run(url) {
     if (argv.f && (response.statusCode >= 300 && response.statusCode < 400) && response.headers['location']) {
       var nurl = require('url').resolve(options.href, response.headers['location'])
       if (argv.v) {
-	console.log(getTimeString()+' REDIRECT='+nurl)
+	    console.log(getTimeString()+' REDIRECT='+nurl)
       }
       run(nurl)
 
