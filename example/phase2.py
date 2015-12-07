@@ -50,7 +50,7 @@ def parseOutput(url, output, error):
             if chunks[1].split('=')[1] == 'true' and firstcert:
                 valid='GOODCERT'
             firstcert = False
-        elif chunks[1].startswith('PROTOCOL='):
+        elif chunks[1].startswith('REQUEST='):
             cnego = False
         elif chunks[1].startswith('CODE=2') and cnego:
             response = True
