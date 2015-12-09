@@ -15,26 +15,58 @@ NODE = os.path.dirname(os.path.realpath(__file__)) + '/../../node-v0.10.33/node'
 CLIENT = os.path.dirname(os.path.realpath(__file__)) + '/client.js'
 TIMEOUT = 10
 
-def handle_url(data):
-#   sys.stderr.write('Fetching (url=%s) on (pid=%s)\n' % (url, os.getpid()))
-   url, ptcl = data
-   try:
-      cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
-#      sys.stderr.write('Running cmd: %s\n' % cmd)
-      output = subprocess.check_output(cmd)           
-      return url, ptcl, output, False
-   except Exception as e:
-      sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
-      return url, ptcl, traceback.format_exc(), True
+class CODES:
+    H2_SUPPORT='H2_SUPPORT'
+    NO_TCP_HANDSHAKE='NO_TCP_HANDSHAKE'
+    NO_H2_NEGO='NO_H2_NEGO'
+    CODE_400='4XX_CODE'
+    CODE_500='5XX_CODE'
+    REDIRECT_TO_HTTP='REDIRECT_TO_HTTP'
+    PROTOCOL_ERROR='PROTOCOL_ERROR'
+    UNKNOWN_ERROR='UNKNOWN_ERROR'
+    
+class CERT:
+    GOOD='GOODCERT'
+    BAD='BADCERT'
 
-def parseOutput(url, output, error):
+class SiteData(object):
+    def __init__(self, url, ptcl):
+        self.url = url
+        self.ptcl = ptcl
+        self.output = None
+        self.code = CODES.UNKNOWN_ERROR
+        self.cert = CERT.BAD
+        self.server = None
+
+    def output(self):
+        return self.url + ' ' + self.code + ' ' + self.cert + ' server=' + self.server
+
+def fetch_url(url, ptcl):
+    data = SiteData(url, ptcl)
+    try:
+        cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
+        data.output = subprocess.check_output(cmd)
+        data.code,data.cert,data.server = parseOutput(output, False)
+    except Exception as e:
+        sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
+        data.output = traceback.format_exc()
+    return data
+    
+def run_url(data):
+    url,ptcl = data
+    data = fetch_url(url, ptcl)
+    if data.code != CODES.H2_SUPPORT:
+        wwwdata = fetch_url('www.'+url, ptcl)
+        if wwwdata.code == CODES.H2_SUPPORT:
+            return wwwdata
+    return data
+
+def parseOutput(output):
     server='unknown'
-    if error:
-        return url+' UNKNOWN_ERROR server=' + server
-    valid='BADCERT'
+    valid=CERT.BAD
     firstcert = True
     # No response, protocol error
-    status='PROTOCOL_ERROR'
+    status=CODES.PROTOCOL_ERROR
 
     estab = nego = cnego = response = redirect = notfound = serverError = False
     for line in output.split('\n'):
@@ -49,7 +81,7 @@ def parseOutput(url, output, error):
             cnego = True
         elif chunks[1].startswith('CERT_VALID='):
             if chunks[1].split('=')[1] == 'true' and firstcert:
-                valid='GOODCERT'
+                valid=CERT.GOOD
             firstcert = False
         elif chunks[1].startswith('CODE=2') and cnego:
             response = True
@@ -64,25 +96,26 @@ def parseOutput(url, output, error):
 
     # Received a 2xx response
     if response:
-        status='H2_SUPPORT'
+        status = CODES.H2_SUPPORT
     # Could not connection
     elif not estab:
-        status='NO_TCP_HANDSHAKE'
+        status = CODES.NO_TCP_HANDSHAKE
     # Could not negotiate h2 via NPN/ALPN
     elif not nego:
-        status='NO_H2_NEGO'
+        status = CODES.NO_H2_NEGO
     # Received a 4xx response
     elif notfound:
-        status='4XX_CODE'
+        status = CODES.CODE_400
     # Received a 5xx response
     elif serverError:
-        status='5XX_CODE'
+        status = CODES.CODE_500
     # Redirected
     elif redirect:
-        status='REDIRECT_TO_HTTP'
+        status = CODES.REDIRECT_TO_HTTP
     
-    return url + ' ' + status + ' ' + valid + ' server=' + server
-    
+    return status, valid, server
+
+# UNUSED CODE FOR SPDY SITES, DEPRECATED AND PROBABLY DOESN'T WORK ANYMORE!!!
 def parseOutputSpdy(url, output, error):
     server='unknown'
     if error:
@@ -148,28 +181,21 @@ if __name__ == "__main__":
 
    # Read input into local storage
    urls = set()
-   protocols = {}
    for line in args.infile:
       try:
-         url, ptcls = line.strip().split(None, 1)
+         url = line.strip().split(None, 1)[0]
          urls.add( (url, args.protocol) )
-         protocols[url] = ptcls
       except Exception as e:
          sys.stderr.write('Input error: (line=%s) %s\n' % (line.strip(), e))
    args.infile.close()
 
    pool = Pool(args.threads)
    try:
-      results = pool.imap(handle_url, urls, args.chunk)
-      for result in results:
-         url, ptcl, output, error = result
+      results = pool.imap(run_url, urls, args.chunk)
+      for data in results:
          if log:
-            cPickle.dump([url, output], log)
-         if ptcl == 'h2':   
-            output = parseOutput(url, output, error)
-         else:
-            output = parseOutputSpdy(url, output, error)
-         args.outfile.write(output+'\n') #'+protocols[url]+'
+            cPickle.dump([data.url, data.output], log)
+         args.outfile.write(data.output()+'\n')
    except KeyboardInterrupt:
       pool.terminate()
 
