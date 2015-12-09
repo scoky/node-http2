@@ -38,7 +38,7 @@ class SiteData(object):
         self.cert = CERT.BAD
         self.server = None
 
-    def output(self):
+    def format_string(self):
         return self.url + ' ' + self.code + ' ' + self.cert + ' server=' + self.server
 
 def fetch_url(url, ptcl):
@@ -195,7 +195,7 @@ if __name__ == "__main__":
       for data in results:
          if log:
             cPickle.dump([data.url, data.output], log)
-         args.outfile.write(data.output()+'\n')
+         args.outfile.write(data.format_string()+'\n')
    except KeyboardInterrupt:
       pool.terminate()
 
