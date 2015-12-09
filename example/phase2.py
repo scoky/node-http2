@@ -46,7 +46,7 @@ def fetch_url(url, ptcl):
     try:
         cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
         data.output = subprocess.check_output(cmd)
-        data.code,data.cert,data.server = parseOutput(output, False)
+        data.code,data.cert,data.server = parseOutput(data.output, False)
     except Exception as e:
         sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
         data.output = traceback.format_exc()
