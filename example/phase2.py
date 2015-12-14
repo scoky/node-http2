@@ -57,6 +57,7 @@ def run_url(data):
     data = fetch_url(url, ptcl)
     if data.code != CODES.H2_SUPPORT:
         wwwdata = fetch_url('www.'+url, ptcl)
+        wwwdata.url = url
         if wwwdata.code == CODES.H2_SUPPORT:
             return wwwdata
     return data
