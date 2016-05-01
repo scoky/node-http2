@@ -37,16 +37,20 @@ class SiteData(object):
         self.code = CODES.UNKNOWN_ERROR
         self.cert = CERT.BAD
         self.server = None
+        self.push = None
 
     def format_string(self):
-        return self.url + ' ' + self.code + ' ' + self.cert + ' server=' + self.server
+        push = ''
+        if self.push and len(self.push) > 0:
+            push = ' push=' + '|'.join(self.push)
+        return self.url + ' ' + self.code + ' ' + self.cert + ' server=' + self.server + push
 
 def fetch_url(url, ptcl):
     data = SiteData(url, ptcl)
     try:
         cmd = [ENV, NODE, CLIENT, 'https://'+url, '-fkv', '-t', str(TIMEOUT), '-o', '/dev/null', '-r', ptcl] #Null content
         data.output = subprocess.check_output(cmd)
-        data.code,data.cert,data.server = parseOutput(data.output)
+        data.code,data.cert,data.server,data.push = parseOutput(data.output)
     except Exception as e:
         sys.stderr.write('Subprocess returned error: %s\n%s\n' % (e, traceback.format_exc()))
         data.output = traceback.format_exc()
@@ -68,6 +72,7 @@ def parseOutput(output):
     firstcert = True
     # No response, protocol error
     status=CODES.PROTOCOL_ERROR
+    push = []
 
     estab = nego = cnego = response = redirect = notfound = serverError = False
     for line in output.split('\n'):
@@ -94,6 +99,8 @@ def parseOutput(output):
             serverError = True
         elif chunks[0] == "\"server\":":
             server = '_'.join(chunks[1:]).strip(",")
+        elif chunks[1].startswith('PUSH='):
+            push.append(chunks[1].split('=', 1)[1])
 
     # Received a 2xx response
     if response:
@@ -114,7 +121,7 @@ def parseOutput(output):
     elif redirect:
         status = CODES.REDIRECT_TO_HTTP
     
-    return status, valid, server
+    return status, valid, server, push
 
 # UNUSED CODE FOR SPDY SITES, DEPRECATED AND PROBABLY DOESN'T WORK ANYMORE!!!
 def parseOutputSpdy(url, output, error):
