@@ -12,6 +12,7 @@ process.on('uncaughtException', function(err) {
 
 // Logging
 http2.globalAgent = new http2.Agent({
+  rejectUnauthorized: true,
   log: require('../test/util').createLogger('client')
 })
 
@@ -71,7 +72,6 @@ function createOptions(url) {
   }
   return options
 }
-
 
 // Sending the request
 // It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
